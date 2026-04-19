@@ -1,4 +1,207 @@
-import { useState, useRef } from "react";
+<!DOCTYPE html>
+<html lang="am">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>የንግድ አስተዳዳሪ v1.0</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+Ethiopic:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0f0e0c; --card: #1a1814; --border: #2e2a22;
+            --gold: #d4a843; --gold-light: #f0c96a; --amber: #b87333;
+            --green: #4caf7d; --red: #e05c5c; --text: #f0ead8; --muted: #8a7f6e;
+        }
+
+        body {
+            font-family: 'Noto Serif Ethiopic', serif; background: var(--bg);
+            color: var(--text); margin: 0; padding-bottom: 80px;
+            display: flex; flex-direction: column; align-items: center;
+        }
+
+        .container { width: 100%; max-width: 480px; }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, #1a1510 0%, #2a1f0e 100%);
+            border-bottom: 2px solid var(--gold); padding: 20px;
+            position: sticky; top: 0; z-index: 100; display: flex; align-items: center; gap: 12px;
+        }
+
+        /* Nav */
+        .nav {
+            position: fixed; bottom: 0; width: 100%; max-width: 480px;
+            background: #12100e; border-top: 1px solid var(--border);
+            display: flex; z-index: 200;
+        }
+        .nav-btn {
+            flex: 1; padding: 12px; background: none; border: none;
+            color: var(--muted); cursor: pointer; display: flex;
+            flex-direction: column; align-items: center; font-size: 10px;
+        }
+        .nav-btn.active { color: var(--gold-light); border-top: 2px solid var(--gold); }
+
+        /* Cards & Inputs */
+        .section { padding: 16px; display: none; }
+        .section.active { display: block; }
+        .card {
+            background: var(--card); border: 1px solid var(--border);
+            border-radius: 12px; padding: 16px; margin-bottom: 12px;
+        }
+        input, select, textarea {
+            width: 100%; background: #0f0e0c; border: 1px solid var(--border);
+            border-radius: 8px; padding: 10px; color: var(--text);
+            margin-top: 5px; box-sizing: border-box; font-family: inherit;
+        }
+        .btn {
+            background: var(--gold); color: #1a1200; border: none;
+            border-radius: 8px; padding: 10px; font-weight: bold;
+            width: 100%; cursor: pointer; margin-top: 10px;
+        }
+
+        /* Stats */
+        .row { display: flex; gap: 10px; margin-bottom: 10px; }
+        .stat-box {
+            background: #0f0e0c; border: 1px solid var(--border);
+            border-radius: 10px; padding: 12px; flex: 1;
+        }
+        .stat-value { font-size: 20px; font-weight: bold; }
+
+        .item-row {
+            display: flex; align-items: center; gap: 12px;
+            padding: 10px 0; border-bottom: 1px solid var(--border);
+        }
+        .badge {
+            font-size: 10px; padding: 2px 8px; border-radius: 20px;
+            background: rgba(184, 115, 51, 0.15); color: var(--amber);
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <span style="font-size: 28px;">🏪</span>
+        <div>
+            <div style="font-size: 20px; font-weight: bold; color: var(--gold-light);">የንግድ አስተዳዳሪ</div>
+            <div style="font-size: 11px; color: var(--muted);">Business Manager · Mobile v1.0</div>
+        </div>
+    </div>
+
+    <div id="inventory" class="section active">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <b style="color: var(--gold);">📦 የዕቃ ዝርዝር</b>
+            <button class="btn" style="width: auto; padding: 5px 15px;" onclick="toggleAddForm()">+ አክል</button>
+        </div>
+
+        <div id="addForm" class="card" style="display: none;">
+            <label>የዕቃ ስም</label>
+            <input type="text" id="itemName" placeholder="ለምሳሌ፦ ጀበና">
+            <div class="row">
+                <div style="flex:1"><label>ብዛት</label><input type="number" id="itemQty"></div>
+                <div style="flex:1"><label>ዓይነት</label><input type="text" id="itemType"></div>
+            </div>
+            <button class="btn" onclick="saveItem()">✓ አስቀምጥ</button>
+        </div>
+
+        <div id="itemsList"></div>
+    </div>
+
+    <div id="finance" class="section">
+        <b style="color: var(--gold);">💰 የሂሳብ ስሌት</b>
+        <div class="row" style="margin-top: 15px;">
+            <div class="stat-box">
+                <div style="font-size: 11px; color: var(--muted);">ጠቅላላ ወጪ</div>
+                <div class="stat-value" id="dispExpense" style="color: var(--red);">0</div>
+            </div>
+            <div class="stat-box">
+                <div style="font-size: 11px; color: var(--muted);">ትርፍ</div>
+                <div class="stat-value" id="dispProfit" style="color: var(--green);">0</div>
+            </div>
+        </div>
+        <div class="card">
+            <label>🛒 የግዢ ዋጋ</label><input type="number" class="fin-in" id="cost_buy" oninput="calcFinance()">
+            <label>🚗 ትራንስፖርት/ሌሎች</label><input type="number" class="fin-in" id="cost_other" oninput="calcFinance()">
+            <label>🏷️ መሸጫ ዋጋ (በነጠላ)</label><input type="number" class="fin-in" id="sell_price" oninput="calcFinance()">
+        </div>
+    </div>
+
+    <nav class="nav">
+        <button class="nav-btn active" onclick="showTab('inventory', this)"><span>📦</span><span>ክምችት</span></button>
+        <button class="nav-btn" onclick="showTab('finance', this)"><span>💰</span><span>ሂሳብ</span></button>
+    </nav>
+</div>
+
+<script>
+    let items = JSON.parse(localStorage.getItem('biz_items')) || [];
+
+    function showTab(tabId, btn) {
+        document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById(tabId).classList.add('active');
+        btn.classList.add('active');
+    }
+
+    function toggleAddForm() {
+        const form = document.getElementById('addForm');
+        form.style.display = form.style.display === 'none' ? 'block' : 'none';
+    }
+
+    function saveItem() {
+        const name = document.getElementById('itemName').value;
+        const qty = document.getElementById('itemQty').value;
+        const type = document.getElementById('itemType').value;
+
+        if(!name) return alert("እባክህ ስም አስገባ");
+
+        items.push({ id: Date.now(), name, qty, type });
+        localStorage.setItem('biz_items', JSON.stringify(items));
+        
+        document.getElementById('itemName').value = '';
+        toggleAddForm();
+        renderItems();
+    }
+
+    function deleteItem(id) {
+        items = items.filter(i => i.id !== id);
+        localStorage.setItem('biz_items', JSON.stringify(items));
+        renderItems();
+    }
+
+    function renderItems() {
+        const list = document.getElementById('itemsList');
+        list.innerHTML = items.map(item => `
+            <div class="card">
+                <div class="item-row">
+                    <div style="flex:1">
+                        <b>${item.name}</b><br>
+                        <span class="badge">ብዛት: ${item.qty}</span>
+                        <span style="font-size:11px; color:var(--muted)">${item.type}</span>
+                    </div>
+                    <button onclick="deleteItem(${item.id})" style="background:none; border:none; color:var(--red); font-size:18px;">✕</button>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function calcFinance() {
+        const buy = parseFloat(document.getElementById('cost_buy').value) || 0;
+        const other = parseFloat(document.getElementById('cost_other').value) || 0;
+        const sell = parseFloat(document.getElementById('sell_price').value) || 0;
+
+        const totalCost = buy + other;
+        const profit = sell - totalCost;
+
+        document.getElementById('dispExpense').innerText = totalCost + " ብር";
+        document.getElementById('dispProfit').innerText = profit + " ብር";
+    }
+
+    // Initial Render
+    renderItems();
+</script>
+
+</body>
+</html>
+ { useState, useRef } from "react";
 
 const COLORS = {
   bg: "#0f0e0c",
