@@ -3,76 +3,108 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>የንግድ አስተዳዳሪ v1.0</title>
+    <title>ጀበና-ሰፌድ ፕሮ (Jebena-Sefed Pro)</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+Ethiopic:wght@400;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg: #0f0e0c; --card: #1a1814; --border: #2e2a22;
-            --gold: #d4a843; --gold-light: #f0c96a; --amber: #b87333;
-            --green: #4caf7d; --red: #e05c5c; --text: #f0ead8; --muted: #8a7f6e;
+            --bg: #0b0a09; --card: #161412; --border: #332d26;
+            --gold: #d4a843; --gold-dark: #b8860b; --gold-light: #f4d03f;
+            --green: #2ecc71; --red: #e74c3c; --text: #f5f0e1; --muted: #a19584;
+            --accent: #e67e22;
         }
 
         body {
             font-family: 'Noto Serif Ethiopic', serif; background: var(--bg);
-            color: var(--text); margin: 0; padding-bottom: 80px;
-            display: flex; flex-direction: column; align-items: center;
+            color: var(--text); margin: 0; padding-bottom: 90px;
+            overflow-x: hidden;
         }
 
-        .container { width: 100%; max-width: 480px; }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-thumb { background: var(--gold); border-radius: 10px; }
 
-        /* Header */
+        .container { width: 100%; max-width: 500px; margin: 0 auto; }
+
+        /* Modern Header */
         .header {
-            background: linear-gradient(135deg, #1a1510 0%, #2a1f0e 100%);
-            border-bottom: 2px solid var(--gold); padding: 20px;
-            position: sticky; top: 0; z-index: 100; display: flex; align-items: center; gap: 12px;
+            background: linear-gradient(180deg, #1f1a14 0%, var(--bg) 100%);
+            padding: 25px 20px; border-bottom: 1px solid var(--border);
+            text-align: center; position: sticky; top: 0; z-index: 1000;
         }
+        .header h1 { color: var(--gold-light); margin: 0; font-size: 24px; letter-spacing: 1px; }
+        .header p { color: var(--muted); font-size: 12px; margin: 5px 0 0; text-transform: uppercase; }
 
-        /* Nav */
-        .nav {
-            position: fixed; bottom: 0; width: 100%; max-width: 480px;
-            background: #12100e; border-top: 1px solid var(--border);
-            display: flex; z-index: 200;
+        /* Dashboard Stats */
+        .dashboard-grid {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 15px;
         }
-        .nav-btn {
-            flex: 1; padding: 12px; background: none; border: none;
-            color: var(--muted); cursor: pointer; display: flex;
-            flex-direction: column; align-items: center; font-size: 10px;
+        .stat-card {
+            background: var(--card); border: 1px solid var(--border);
+            padding: 15px; border-radius: 15px; position: relative;
+            overflow: hidden;
         }
-        .nav-btn.active { color: var(--gold-light); border-top: 2px solid var(--gold); }
+        .stat-card::after {
+            content: ''; position: absolute; bottom: 0; left: 0; width: 100%; height: 3px; background: var(--gold);
+        }
+        .stat-label { font-size: 11px; color: var(--muted); }
+        .stat-val { font-size: 18px; font-weight: bold; margin-top: 5px; }
 
-        /* Cards & Inputs */
-        .section { padding: 16px; display: none; }
+        /* Sections */
+        .section { padding: 15px; display: none; animation: fadeIn 0.3s ease; }
         .section.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
         .card {
             background: var(--card); border: 1px solid var(--border);
-            border-radius: 12px; padding: 16px; margin-bottom: 12px;
+            border-radius: 15px; padding: 18px; margin-bottom: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
         }
+
+        /* Forms */
+        label { display: block; font-size: 12px; color: var(--gold); margin-bottom: 6px; margin-top: 10px; }
         input, select, textarea {
-            width: 100%; background: #0f0e0c; border: 1px solid var(--border);
-            border-radius: 8px; padding: 10px; color: var(--text);
-            margin-top: 5px; box-sizing: border-box; font-family: inherit;
+            width: 100%; background: #000; border: 1px solid var(--border);
+            border-radius: 10px; padding: 12px; color: #fff;
+            font-family: inherit; font-size: 14px; box-sizing: border-box;
+            transition: border 0.3s;
         }
+        input:focus { border-color: var(--gold); outline: none; }
+
         .btn {
-            background: var(--gold); color: #1a1200; border: none;
-            border-radius: 8px; padding: 10px; font-weight: bold;
-            width: 100%; cursor: pointer; margin-top: 10px;
+            background: linear-gradient(90deg, var(--gold-dark), var(--gold));
+            color: #000; border: none; border-radius: 10px; padding: 14px;
+            font-weight: bold; width: 100%; cursor: pointer; margin-top: 15px;
+            font-size: 15px; text-transform: uppercase;
         }
+        .btn-danger { background: rgba(231, 76, 60, 0.1); color: var(--red); border: 1px solid var(--red); }
 
-        /* Stats */
-        .row { display: flex; gap: 10px; margin-bottom: 10px; }
-        .stat-box {
-            background: #0f0e0c; border: 1px solid var(--border);
-            border-radius: 10px; padding: 12px; flex: 1;
+        /* List Items */
+        .list-item {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 12px 0; border-bottom: 1px solid var(--border);
         }
-        .stat-value { font-size: 20px; font-weight: bold; }
+        .list-info b { font-size: 15px; color: var(--text); }
+        .list-info p { font-size: 12px; color: var(--muted); margin: 3px 0; }
 
-        .item-row {
-            display: flex; align-items: center; gap: 12px;
-            padding: 10px 0; border-bottom: 1px solid var(--border);
+        /* Navigation */
+        .nav {
+            position: fixed; bottom: 0; width: 100%; max-width: 500px;
+            background: #000; border-top: 1px solid var(--border);
+            display: flex; justify-content: space-around; padding: 10px 0;
+            z-index: 1000;
         }
+        .nav-btn {
+            background: none; border: none; color: var(--muted);
+            font-family: inherit; font-size: 10px; display: flex;
+            flex-direction: column; align-items: center; cursor: pointer;
+            transition: 0.3s;
+        }
+        .nav-btn i { font-size: 20px; margin-bottom: 4px; }
+        .nav-btn.active { color: var(--gold-light); }
+
         .badge {
-            font-size: 10px; padding: 2px 8px; border-radius: 20px;
-            background: rgba(184, 115, 51, 0.15); color: var(--amber);
+            background: var(--gold); color: #000; padding: 2px 8px;
+            border-radius: 5px; font-size: 10px; font-weight: bold;
         }
     </style>
 </head>
@@ -80,123 +112,204 @@
 
 <div class="container">
     <div class="header">
-        <span style="font-size: 28px;">🏪</span>
-        <div>
-            <div style="font-size: 20px; font-weight: bold; color: var(--gold-light);">የንግድ አስተዳዳሪ</div>
-            <div style="font-size: 11px; color: var(--muted);">Business Manager · Mobile v1.0</div>
+        <h1>ጀበና-ሰፌድ ፕሮ</h1>
+        <p>የጅምላና ቸርቻሪ ንግድ ማስተዳደሪያ</p>
+    </div>
+
+    <div id="dash" class="section active">
+        <div class="dashboard-grid">
+            <div class="stat-card">
+                <div class="stat-label">ያለህ ዕቃ</div>
+                <div class="stat-val" id="totalItems">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">የዛሬ ትርፍ</div>
+                <div class="stat-val" id="todayProfit" style="color: var(--green);">0.00</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">ጠቅላላ ካፒታል</div>
+                <div class="stat-val" id="totalCapital">0.00</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">ሰራተኞች</div>
+                <div class="stat-val" id="totalStaff">0</div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <b style="color: var(--gold);">ፈጣን ማስታወሻ</b>
+            <textarea id="quickNote" placeholder="አዲስ ሃሳብ እዚህ ጻፍ..." oninput="saveNote()"></textarea>
         </div>
     </div>
 
-    <div id="inventory" class="section active">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-            <b style="color: var(--gold);">📦 የዕቃ ዝርዝር</b>
-            <button class="btn" style="width: auto; padding: 5px 15px;" onclick="toggleAddForm()">+ አክል</button>
-        </div>
-
-        <div id="addForm" class="card" style="display: none;">
-            <label>የዕቃ ስም</label>
-            <input type="text" id="itemName" placeholder="ለምሳሌ፦ ጀበና">
-            <div class="row">
-                <div style="flex:1"><label>ብዛት</label><input type="number" id="itemQty"></div>
-                <div style="flex:1"><label>ዓይነት</label><input type="text" id="itemType"></div>
+    <div id="inv" class="section">
+        <div class="card">
+            <b style="color: var(--gold);">አዲስ ዕቃ መመዝገቢያ</b>
+            <input type="text" id="pName" placeholder="የዕቃ ስም (ጀበና...)">
+            <div class="row" style="display:flex; gap:10px;">
+                <input type="number" id="pQty" placeholder="ብዛት">
+                <input type="number" id="pPrice" placeholder="የገዛህበት ዋጋ">
             </div>
-            <button class="btn" onclick="saveItem()">✓ አስቀምጥ</button>
+            <button class="btn" onclick="addInventory()">ዕቃ መዝግብ</button>
         </div>
-
-        <div id="itemsList"></div>
+        <div id="inventoryList"></div>
     </div>
 
-    <div id="finance" class="section">
-        <b style="color: var(--gold);">💰 የሂሳብ ስሌት</b>
-        <div class="row" style="margin-top: 15px;">
-            <div class="stat-box">
-                <div style="font-size: 11px; color: var(--muted);">ጠቅላላ ወጪ</div>
-                <div class="stat-value" id="dispExpense" style="color: var(--red);">0</div>
-            </div>
-            <div class="stat-box">
-                <div style="font-size: 11px; color: var(--muted);">ትርፍ</div>
-                <div class="stat-value" id="dispProfit" style="color: var(--green);">0</div>
-            </div>
+    <div id="fin" class="section">
+        <div class="card">
+            <b style="color: var(--gold);">የሽያጭ መመዝገቢያ</b>
+            <select id="pSelect"></select>
+            <input type="number" id="sQty" placeholder="የተሸጠው ብዛት">
+            <input type="number" id="sPrice" placeholder="የተሸጠበት ዋጋ">
+            <button class="btn" onclick="recordSale()">ሽያጭ መዝግብ ✓</button>
         </div>
         <div class="card">
-            <label>🛒 የግዢ ዋጋ</label><input type="number" class="fin-in" id="cost_buy" oninput="calcFinance()">
-            <label>🚗 ትራንስፖርት/ሌሎች</label><input type="number" class="fin-in" id="cost_other" oninput="calcFinance()">
-            <label>🏷️ መሸጫ ዋጋ (በነጠላ)</label><input type="number" class="fin-in" id="sell_price" oninput="calcFinance()">
+            <b style="color: var(--gold);">የሽያጭ ታሪክ</b>
+            <div id="salesHistory"></div>
         </div>
+    </div>
+
+    <div id="hr" class="section">
+        <div class="card">
+            <b style="color: var(--gold);">አዲስ ሰራተኛ</b>
+            <input type="text" id="sName" placeholder="ሙሉ ስም">
+            <input type="text" id="sRole" placeholder="የስራ ድርሻ">
+            <input type="number" id="sSalary" placeholder="ደመወዝ">
+            <button class="btn" onclick="addStaff()">ሰራተኛ መዝግብ</button>
+        </div>
+        <div id="staffList"></div>
     </div>
 
     <nav class="nav">
-        <button class="nav-btn active" onclick="showTab('inventory', this)"><span>📦</span><span>ክምችት</span></button>
-        <button class="nav-btn" onclick="showTab('finance', this)"><span>💰</span><span>ሂሳብ</span></button>
+        <button class="nav-btn active" onclick="showTab('dash', this)"><i>🏠</i><span>ዋና</span></button>
+        <button class="nav-btn" onclick="showTab('inv', this)"><i>📦</i><span>ክምችት</span></button>
+        <button class="nav-btn" onclick="showTab('fin', this)"><i>💸</i><span>ሽያጭ</span></button>
+        <button class="nav-btn" onclick="showTab('hr', this)"><i>👥</i><span>ሰራተኛ</span></button>
     </nav>
 </div>
 
 <script>
-    let items = JSON.parse(localStorage.getItem('biz_items')) || [];
+    // Database Mockup using LocalStorage
+    let db = {
+        inventory: JSON.parse(localStorage.getItem('j_inv')) || [],
+        sales: JSON.parse(localStorage.getItem('j_sales')) || [],
+        staff: JSON.parse(localStorage.getItem('j_staff')) || [],
+        note: localStorage.getItem('j_note') || ""
+    };
 
-    function showTab(tabId, btn) {
+    function showTab(id, el) {
         document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
         document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-        document.getElementById(tabId).classList.add('active');
-        btn.classList.add('active');
+        document.getElementById(id).classList.add('active');
+        el.classList.add('active');
+        renderAll();
     }
 
-    function toggleAddForm() {
-        const form = document.getElementById('addForm');
-        form.style.display = form.style.display === 'none' ? 'block' : 'none';
+    function addInventory() {
+        const name = document.getElementById('pName').value;
+        const qty = parseInt(document.getElementById('pQty').value);
+        const price = parseFloat(document.getElementById('pPrice').value);
+
+        if(!name || !qty || !price) return alert("እባክህ ሁሉንም ሙላ!");
+
+        db.inventory.push({ id: Date.now(), name, qty, price });
+        saveAndRender();
+        alert("ተመዝግቧል!");
     }
 
-    function saveItem() {
-        const name = document.getElementById('itemName').value;
-        const qty = document.getElementById('itemQty').value;
-        const type = document.getElementById('itemType').value;
+    function recordSale() {
+        const pIdx = document.getElementById('pSelect').value;
+        const sqty = parseInt(document.getElementById('sQty').value);
+        const sprice = parseFloat(document.getElementById('sPrice').value);
 
-        if(!name) return alert("እባክህ ስም አስገባ");
-
-        items.push({ id: Date.now(), name, qty, type });
-        localStorage.setItem('biz_items', JSON.stringify(items));
+        if(pIdx === "" || !sqty || !sprice) return alert("መረጃ ጎድሏል!");
         
-        document.getElementById('itemName').value = '';
-        toggleAddForm();
-        renderItems();
+        const item = db.inventory[pIdx];
+        if(item.qty < sqty) return alert("በቂ ዕቃ የለም!");
+
+        const profit = (sprice - item.price) * sqty;
+        db.sales.push({ name: item.name, qty: sqty, price: sprice, profit, date: new Date().toLocaleDateString() });
+        item.qty -= sqty;
+
+        saveAndRender();
+        alert("ሽያጭ ተመዝግቧል!");
     }
 
-    function deleteItem(id) {
-        items = items.filter(i => i.id !== id);
-        localStorage.setItem('biz_items', JSON.stringify(items));
-        renderItems();
+    function addStaff() {
+        const name = document.getElementById('sName').value;
+        const role = document.getElementById('sRole').value;
+        const sal = document.getElementById('sSalary').value;
+
+        if(!name || !role) return;
+        db.staff.push({ id: Date.now(), name, role, sal });
+        saveAndRender();
     }
 
-    function renderItems() {
-        const list = document.getElementById('itemsList');
-        list.innerHTML = items.map(item => `
-            <div class="card">
-                <div class="item-row">
-                    <div style="flex:1">
-                        <b>${item.name}</b><br>
-                        <span class="badge">ብዛት: ${item.qty}</span>
-                        <span style="font-size:11px; color:var(--muted)">${item.type}</span>
+    function saveNote() {
+        db.note = document.getElementById('quickNote').value;
+        localStorage.setItem('j_note', db.note);
+    }
+
+    function saveAndRender() {
+        localStorage.setItem('j_inv', JSON.stringify(db.inventory));
+        localStorage.setItem('j_sales', JSON.stringify(db.sales));
+        localStorage.setItem('j_staff', JSON.stringify(db.staff));
+        renderAll();
+    }
+
+    function renderAll() {
+        // Stats
+        document.getElementById('totalItems').innerText = db.inventory.length;
+        document.getElementById('totalStaff').innerText = db.staff.length;
+        
+        let cap = 0;
+        db.inventory.forEach(i => cap += (i.qty * i.price));
+        document.getElementById('totalCapital').innerText = cap.toLocaleString() + " ETB";
+
+        let tProf = 0;
+        db.sales.forEach(s => tProf += s.profit);
+        document.getElementById('todayProfit').innerText = tProf.toLocaleString() + " ETB";
+
+        // Inventory List
+        const invList = document.getElementById('inventoryList');
+        const pSelect = document.getElementById('pSelect');
+        invList.innerHTML = "";
+        pSelect.innerHTML = '<option value="">ዕቃ ምረጥ...</option>';
+        
+        db.inventory.forEach((item, idx) => {
+            invList.innerHTML += `
+                <div class="card">
+                    <div class="list-item">
+                        <div class="list-info">
+                            <b>${item.name}</b>
+                            <p>ካፒታል: ${item.price} | ብዛት: ${item.qty}</p>
+                        </div>
+                        <span class="badge">${item.qty < 5 ? 'ሊያልቅ ነው' : 'በቂ'}</span>
                     </div>
-                    <button onclick="deleteItem(${item.id})" style="background:none; border:none; color:var(--red); font-size:18px;">✕</button>
-                </div>
+                </div>`;
+            pSelect.innerHTML += `<option value="${idx}">${item.name}</option>`;
+        });
+
+        // Sales History
+        document.getElementById('salesHistory').innerHTML = db.sales.map(s => `
+            <div class="list-item">
+                <div class="list-info"><b>${s.name} (x${s.qty})</b><p>${s.date}</p></div>
+                <div style="color:var(--green)">+${s.profit}</div>
             </div>
         `).join('');
+
+        // Staff List
+        document.getElementById('staffList').innerHTML = db.staff.map(s => `
+            <div class="card">
+                <b>${s.name}</b>
+                <p style="color:var(--muted); font-size:12px;">${s.role} | ደመወዝ: ${s.sal} ETB</p>
+            </div>
+        `).join('');
+
+        document.getElementById('quickNote').value = db.note;
     }
 
-    function calcFinance() {
-        const buy = parseFloat(document.getElementById('cost_buy').value) || 0;
-        const other = parseFloat(document.getElementById('cost_other').value) || 0;
-        const sell = parseFloat(document.getElementById('sell_price').value) || 0;
-
-        const totalCost = buy + other;
-        const profit = sell - totalCost;
-
-        document.getElementById('dispExpense').innerText = totalCost + " ብር";
-        document.getElementById('dispProfit').innerText = profit + " ብር";
-    }
-
-    // Initial Render
-    renderItems();
+    window.onload = renderAll;
 </script>
 
 </body>
