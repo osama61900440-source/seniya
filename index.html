@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ትርፌ-ነው (Landed Cost Edition)</title>
+    <title>ትርፌ-ነው (Landed Cost Pro)</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+Ethiopic:wght@400;700&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -15,88 +15,107 @@
         body {
             font-family: 'Noto Serif Ethiopic', serif; background: var(--bg);
             color: var(--text); margin: 0; padding-bottom: 90px;
+            -webkit-tap-highlight-color: transparent;
         }
 
         .container { width: 100%; max-width: 500px; margin: 0 auto; }
 
         .header {
             background: linear-gradient(180deg, #1f1a14 0%, var(--bg) 100%);
-            padding: 20px; border-bottom: 2px solid var(--gold); text-align: center;
+            padding: 25px 20px; border-bottom: 2px solid var(--gold); text-align: center;
         }
 
-        .section { padding: 15px; display: none; }
+        .section { padding: 15px; display: none; animation: fadeIn 0.3s ease-in; }
         .section.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
         .card {
             background: var(--card); border: 1px solid var(--border);
             border-radius: 15px; padding: 18px; margin-bottom: 15px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
         }
 
-        label { display: block; font-size: 12px; color: var(--gold); margin: 10px 0 5px; }
+        label { display: block; font-size: 12px; color: var(--gold); margin: 12px 0 6px; font-weight: bold; }
+        
         input {
             width: 100%; background: #000; border: 1px solid var(--border);
-            border-radius: 10px; padding: 12px; color: #fff; font-family: inherit;
-            box-sizing: border-box;
+            border-radius: 10px; padding: 14px; color: #fff; font-family: inherit;
+            box-sizing: border-box; font-size: 15px; transition: border 0.3s;
         }
+        input:focus { border-color: var(--gold); outline: none; }
 
         .btn {
-            background: var(--gold); color: #000; border: none; border-radius: 10px;
-            padding: 14px; font-weight: bold; width: 100%; cursor: pointer; margin-top: 15px;
+            background: linear-gradient(90deg, var(--gold), #b8860b);
+            color: #000; border: none; border-radius: 10px;
+            padding: 15px; font-weight: bold; width: 100%; cursor: pointer; 
+            margin-top: 20px; font-size: 16px; text-transform: uppercase;
         }
+        .btn:active { transform: scale(0.98); opacity: 0.9; }
 
         .calc-box {
-            background: rgba(212, 168, 67, 0.1); border: 1px dashed var(--gold);
-            padding: 15px; border-radius: 10px; margin-top: 10px;
+            background: rgba(212, 168, 67, 0.08); border: 1px dashed var(--gold);
+            padding: 20px; border-radius: 12px; margin-top: 20px; text-align: center;
         }
 
         .nav {
             position: fixed; bottom: 0; width: 100%; max-width: 500px;
             background: #000; border-top: 1px solid var(--border);
-            display: flex; justify-content: space-around; padding: 10px 0;
+            display: flex; justify-content: space-around; padding: 12px 0;
+            z-index: 1000;
         }
 
         .nav-btn {
             background: none; border: none; color: var(--muted);
-            font-size: 10px; display: flex; flex-direction: column; align-items: center;
+            font-size: 11px; display: flex; flex-direction: column; align-items: center;
+            cursor: pointer; gap: 5px; transition: 0.3s;
         }
 
+        .nav-btn i { font-style: normal; font-size: 20px; }
         .nav-btn.active { color: var(--gold-light); }
 
-        .result-val { font-size: 22px; font-weight: bold; color: var(--gold-light); }
+        .result-val { font-size: 26px; font-weight: bold; color: var(--gold-light); margin: 5px 0; }
+        
+        .inv-card { display: flex; justify-content: space-between; align-items: center; }
+        .delete-btn { background: none; border: 1px solid var(--red); color: var(--red); 
+                      padding: 4px 10px; border-radius: 5px; font-size: 12px; cursor: pointer; }
     </style>
 </head>
 <body>
 
 <div class="container">
     <div class="header">
-        <h1 style="margin:0; font-size:22px; color:var(--gold-light);">ትርፌ-ነው</h1>
-        <p style="margin:5px 0 0; font-size:12px; color:var(--muted);">የወጪና ትርፍ መቆጣጠሪያ</p>
+        <h1 style="margin:0; font-size:24px; color:var(--gold-light); letter-spacing: 1px;">ትርፌ-ነው</h1>
+        <p style="margin:5px 0 0; font-size:11px; color:var(--muted); text-transform: uppercase;">የወጪና ትርፍ መቆጣጠሪያ v2.0</p>
     </div>
 
     <div id="calc" class="section active">
         <div class="card">
-            <b style="color:var(--gold-light);">🚚 የወጪ ስሌት (Landed Cost)</b>
-            <p style="font-size:11px; color:var(--muted);">ዕቃው መጋዘን እስኪገባ የወጣውን ወጪ እዚህ አስላ</p>
+            <b style="color:var(--gold-light); font-size: 16px;">🚚 የመነሻ ዋጋ ስሌት (Landed Cost)</b>
             
             <label>የዕቃው ስም</label>
-            <input type="text" id="itemName" placeholder="እቃ">
+            <input type="text" id="itemName" placeholder="ለምሳሌ፡ ጀበና">
 
-            <label>ጠቅላላ ብዛት</label>
-            <input type="number" id="qty" oninput="doCalc()" placeholder="ስንት ፍሬ?">
+            <div style="display: flex; gap: 10px;">
+                <div style="flex: 1;">
+                    <label>ጠቅላላ ብዛት</label>
+                    <input type="number" id="qty" oninput="doCalc()" placeholder="0">
+                </div>
+                <div style="flex: 1;">
+                    <label>መግዣ ዋጋ (ነጠላ)</label>
+                    <input type="number" id="buyPrice" oninput="doCalc()" placeholder="0.00">
+                </div>
+            </div>
 
-            <label>አንዱ የተገዛበት ዋጋ (Unit Price)</label>
-            <input type="number" id="buyPrice" oninput="doCalc()" placeholder="0.00">
-
-            <label>የትራንስፖርት ወጪ (ጠቅላላ)</label>
+            <label>ጠቅላላ የትራንስፖርት ወጪ</label>
             <input type="number" id="trans" oninput="doCalc()" placeholder="0.00">
 
-            <label>የጫኝና አውራጅ/ሌሎች ወጪዎች</label>
+            <label>ጫኝና አውራጅ / ሌሎች ወጪዎች</label>
             <input type="number" id="labor" oninput="doCalc()" placeholder="0.00">
 
             <div class="calc-box">
-                <div style="font-size:12px; color:var(--muted);">የአንዱ ዕቃ እውነተኛ መነሻ ዋጋ፦</div>
+                <div style="font-size:13px; color:var(--muted);">አንድ ዕቃ የቆመበት እውነተኛ ዋጋ፦</div>
                 <div class="result-val" id="landedPrice">0.00 ብር</div>
-                <div id="suggestion" style="font-size:11px; margin-top:5px; color:var(--green);"></div>
+                <div id="suggestion" style="font-size:12px; margin-top:8px; color:var(--green); font-weight: bold;"></div>
             </div>
 
             <button class="btn" onclick="saveToInv()">ወደ ክምችት መዝግብ ✓</button>
@@ -104,8 +123,11 @@
     </div>
 
     <div id="list" class="section">
-        <b style="color:var(--gold-light);">📦 በክምችት ላይ ያሉ</b>
-        <div id="invList" style="margin-top:15px;"></div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <b style="color:var(--gold-light);">📦 የተመዘገቡ ዕቃዎች</b>
+            <span id="itemCount" style="font-size: 12px; color: var(--muted);">0 ዕቃዎች</span>
+        </div>
+        <div id="invList"></div>
     </div>
 
     <nav class="nav">
@@ -131,61 +153,77 @@
         const trans = parseFloat(document.getElementById('trans').value) || 0;
         const labor = parseFloat(document.getElementById('labor').value) || 0;
 
+        const landedPriceEl = document.getElementById('landedPrice');
+        const suggestionEl = document.getElementById('suggestion');
+
         if(qty > 0) {
             const totalExtra = trans + labor;
             const extraPerUnit = totalExtra / qty;
             const finalUnitCost = buy + extraPerUnit;
 
-            document.getElementById('landedPrice').innerText = finalUnitCost.toFixed(2) + " ብር";
+            landedPriceEl.innerText = finalUnitCost.toLocaleString(undefined, {minimumFractionDigits: 2}) + " ብር";
             
-            // Suggestion: 20% profit
+            // 20% ትርፍ ጥቆማ
             const minSell = finalUnitCost * 1.20;
-            document.getElementById('suggestion').innerText = "ጥቆማ፡ ቢያንስ በ " + minSell.toFixed(2) + " ብር ብትሸጠው ያተርፋል።";
+            suggestionEl.innerText = "ጥቆማ፡ ቢያንስ በ " + minSell.toLocaleString(undefined, {minimumFractionDigits: 2}) + " ብር ቢሸጥ ያተርፋል።";
+        } else {
+            landedPriceEl.innerText = "0.00 ብር";
+            suggestionEl.innerText = "";
         }
     }
 
     function saveToInv() {
-        const name = document.getElementById('itemName').value;
+        const name = document.getElementById('itemName').value.trim();
         const qty = document.getElementById('qty').value;
         const landed = document.getElementById('landedPrice').innerText;
 
-        if(!name || !qty || landed === "0.00 ብር") return alert("እባክህ መረጃዎችን በትክክል ሙላ!");
+        if(!name || !qty || landed === "0.00 ብር") {
+            alert("እባክህ ሁሉንም መረጃዎች በትክክል ሙላ!");
+            return;
+        }
 
-        inventory.push({ name, qty, cost: landed, date: new Date().toLocaleDateString() });
-        localStorage.setItem('j_inv_v2', JSON.stringify(inventory));
+        inventory.unshift({ 
+            name, 
+            qty, 
+            cost: landed, 
+            date: new Date().toLocaleDateString('am-ET') 
+        });
         
-        alert("በተሳካ ሁኔታ ተመዝግቧል!");
+        localStorage.setItem('j_inv_v2', JSON.stringify(inventory));
+        alert("ተመዝግቧል!");
         clearForm();
     }
 
     function clearForm() {
-        document.getElementById('itemName').value = "";
-        document.getElementById('qty').value = "";
-        document.getElementById('buyPrice').value = "";
-        document.getElementById('trans').value = "";
-        document.getElementById('labor').value = "";
+        ['itemName', 'qty', 'buyPrice', 'trans', 'labor'].forEach(id => document.getElementById(id).value = "");
         document.getElementById('landedPrice').innerText = "0.00 ብር";
         document.getElementById('suggestion').innerText = "";
     }
 
     function renderInv() {
         const div = document.getElementById('invList');
-        div.innerHTML = inventory.length ? "" : "<p style='color:var(--muted);'>ምንም ዕቃ የለም።</p>";
+        document.getElementById('itemCount').innerText = inventory.length + " ዕቃዎች";
+        
+        div.innerHTML = inventory.length ? "" : "<div style='text-align:center; padding:50px; color:var(--muted);'>ምንም ዕቃ አልተመዘገበም።</div>";
+        
         inventory.forEach((item, idx) => {
             div.innerHTML += `
-                <div class="card">
-                    <b>${item.name}</b>
-                    <p style="font-size:12px; color:var(--muted); margin:5px 0;">
-                        ብዛት: ${item.qty} | የመነሻ ዋጋ: <span style="color:var(--gold);">${item.cost}</span>
-                    </p>
-                    <button onclick="deleteItem(${idx})" style="background:none; border:none; color:var(--red); font-size:11px; padding:0;">ሰርዝ ✕</button>
+                <div class="card inv-card">
+                    <div>
+                        <b style="font-size:16px;">${item.name}</b>
+                        <p style="font-size:12px; color:var(--muted); margin:5px 0;">
+                            ብዛት: ${item.qty} | መነሻ ዋጋ: <span style="color:var(--gold-light); font-weight:bold;">${item.cost}</span>
+                        </p>
+                        <small style="font-size:10px; color:var(--border);">${item.date}</small>
+                    </div>
+                    <button class="delete-btn" onclick="deleteItem(${idx})">ሰርዝ</button>
                 </div>
             `;
         });
     }
 
     function deleteItem(idx) {
-        if(confirm("ይህ ዕቃ ይጥፋ?")) {
+        if(confirm("ይህ ዕቃ ከዝርዝሩ ይጥፋ?")) {
             inventory.splice(idx, 1);
             localStorage.setItem('j_inv_v2', JSON.stringify(inventory));
             renderInv();
