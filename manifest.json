@@ -1,0 +1,21 @@
+{
+  "name": "የሱቅ መቆጣጠሪያ ሲስተም",
+  "short_name": "ሱቅ መቆጣጠሪያ",
+  "description": "ኦፍላይን-መጀመሪያ የሱቅ ሽያጭ፣ ወጪ፣ ዕቃ ክምችት እና ካፒታል መቆጣጠሪያ",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F5F7F9",
+  "theme_color": "#122B4A",
+  "lang": "am",
+  "dir": "ltr",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%23122B4A'/%3E%3Ctext x='50' y='66' font-size='52' text-anchor='middle' fill='white' font-family='Arial,sans-serif' font-weight='bold'%3E%E1%88%B1%3C/text%3E%3C/svg%3E",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
