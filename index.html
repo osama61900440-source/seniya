@@ -1,279 +1,331 @@
 <!DOCTYPE html>
 <html lang="am">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Super Admin Dashboard - Store Management</title>
-  <!-- Tailwind CSS & Lucide Icons -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://unpkg.com/lucide@latest"></script>
-  <style>
-    body { font-family: system-ui, -apple-system, sans-serif; background-color: #0f172a; color: #f8fafc; }
-    .glass-card { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.05); }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Super Admin Dashboard - Osama Business</title>
+    
+    <!-- Tailwind CSS (ለዲዛይኑ) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- React & Babel (አፑን ብራውዘር ላይ ለማስኬድ) -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Firebase SDK (v9 Compat) -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-messaging-compat.js"></script>
 </head>
-<body class="min-h-screen flex flex-col md:flex-row">
+<body class="bg-slate-900 text-slate-100 font-sans min-h-screen">
 
-  <!-- Sidebar -->
-  <aside class="w-full md:w-64 glass-card p-6 flex flex-col gap-6">
-    <div class="flex items-center gap-3">
-      <i data-lucide="shield-check" class="text-blue-500 w-8 h-8"></i>
-      <h1 class="text-xl font-bold tracking-wide">POS Admin</h1>
-    </div>
-    <nav class="flex flex-col gap-2">
-      <button onclick="switchTab('analytics')" class="flex items-center gap-3 p-3 rounded-xl bg-blue-600/20 text-blue-400 font-medium hover:bg-blue-600/30 transition"><i data-lucide="layout-dashboard"></i> Overview</button>
-      <button onclick="switchTab('stores')" class="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-800 text-slate-300 transition"><i data-lucide="store"></i> Store Management</button>
-      <button onclick="switchTab('billing')" class="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-800 text-slate-300 transition"><i data-lucide="credit-card"></i> Billing & Subscriptions</button>
-      <button onclick="switchTab('logs')" class="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-800 text-slate-300 transition"><i data-lucide="file-text"></i> Fraud & Activity Logs</button>
-      <button onclick="switchTab('broadcast')" class="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-800 text-slate-300 transition"><i data-lucide="send"></i> Support & Broadcast</button>
-      <button onclick="switchTab('settings')" class="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-800 text-slate-300 transition"><i data-lucide="settings"></i> System Settings</button>
-    </nav>
-  </aside>
+    <!-- React App የሚቀመጥበት ቦታ -->
+    <div id="root"></div>
 
-  <!-- Main Content -->
-  <main class="flex-1 p-6 md:p-10 space-y-8 overflow-y-auto">
+    <script type="text/babel">
+        // 1. የ Firebase ኮንፊግህ
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "osama-biznes.firebaseapp.com",
+            projectId: "osama-biznes",
+            storageBucket: "osama-biznes.appspot.com",
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
 
-    <!-- Auth Protection Warning Bar -->
-    <div id="unauthorized-banner" class="hidden bg-red-500/10 border border-red-500/20 p-4 rounded-xl text-red-400 flex items-center justify-between">
-      <span>🚨 ያልተፈቀደ ገጽ! ይህንን ዳሽቦርድ ለመጠቀም Super Admin Role ያስፈልግዎታል።</span>
-    </div>
+        // Firebase Initialize ማድረግ
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const messaging = firebase.messaging();
 
-    <!-- 1. Overview Analytics -->
-    <section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-      <div class="glass-card p-6 rounded-2xl flex justify-between items-center">
-        <div>
-          <p class="text-slate-400 text-sm">Total Stores</p>
-          <h3 id="stat-total-stores" class="text-3xl font-bold mt-1">0</h3>
-        </div>
-        <div class="p-3 bg-blue-500/10 text-blue-400 rounded-xl"><i data-lucide="store"></i></div>
-      </div>
-      <div class="glass-card p-6 rounded-2xl flex justify-between items-center">
-        <div>
-          <p class="text-slate-400 text-sm">Total System Users</p>
-          <h3 id="stat-total-users" class="text-3xl font-bold mt-1">0</h3>
-        </div>
-        <div class="p-3 bg-indigo-500/10 text-indigo-400 rounded-xl"><i data-lucide="users"></i></div>
-      </div>
-      <div class="glass-card p-6 rounded-2xl flex justify-between items-center">
-        <div>
-          <p class="text-slate-400 text-sm">Today's Sales (ETB)</p>
-          <h3 id="stat-today-sales" class="text-3xl font-bold mt-1 text-emerald-400">0.00</h3>
-        </div>
-        <div class="p-3 bg-emerald-500/10 text-emerald-400 rounded-xl"><i data-lucide="banknote"></i></div>
-      </div>
-      <div class="glass-card p-6 rounded-2xl flex justify-between items-center">
-        <div>
-          <p class="text-slate-400 text-sm">Active Subscriptions</p>
-          <h3 id="stat-active-sub" class="text-3xl font-bold mt-1">0%</h3>
-        </div>
-        <div class="p-3 bg-purple-500/10 text-purple-400 rounded-xl"><i data-lucide="zap"></i></div>
-      </div>
-    </section>
+        // አንተ የሰጠኸው VAPID Key
+        const VAPID_KEY = "BLkxZdtKtyrhGgj7gRDaOMYq-WLjAxt0tyyPnleZ7Rs043Qbv8kVssq7Ud3-Jhm9VyNt8K1OY9Oncz4IJkkI37w";
 
-    <!-- 2 & 3. Store Management & Billing Table -->
-    <section class="glass-card p-6 rounded-2xl space-y-6">
-      <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <h2 class="text-xl font-bold flex items-center gap-2"><i data-lucide="list"></i> የሱቆች እና Subscription አስተዳደር</h2>
-        <input type="text" id="search-store" onkeyup="filterStores()" placeholder="ሱቅ በስም/ስልክ ፈልግ..." class="bg-slate-800 border border-slate-700 p-2.5 px-4 rounded-xl w-full md:w-72 text-sm focus:outline-none focus:border-blue-500">
-      </div>
+        // 2. Dashboard Component
+        function Dashboard() {
+            const [stores, setStores] = React.useState([]);
+            const [stats, setStats] = React.useState({ totalStores: 0, totalUsers: 0, todaySales: 0, activeSubPercentage: 0 });
+            const [searchTerm, setSearchTerm] = React.useState('');
+            const [trialDays, setTrialDays] = React.useState(14);
 
-      <div class="overflow-x-auto">
-        <table class="w-full text-left border-collapse">
-          <thead>
-            <tr class="border-b border-slate-800 text-slate-400 text-sm">
-              <th class="p-4">የሱቅ ስም</th>
-              <th class="p-4">ባለቤት / ስልክ</th>
-              <th class="p-4">የምዝገባ ቀን</th>
-              <th class="p-4">Status</th>
-              <th class="p-4">Subscription</th>
-              <th class="p-4 text-center">Actions</th>
-            </tr>
-          </thead>
-          <tbody id="stores-table-body" class="divide-y divide-slate-800 text-sm">
-            <!-- Dynamic Realtime Rows Will Inject Here -->
-          </tbody>
-        </table>
-      </div>
-    </section>
+            // Dynamic Broadcast Form State
+            const [broadcast, setBroadcast] = React.useState({
+                platform: 'youtube',
+                title: '',
+                url: '',
+                message: '',
+                targetPref: 'youtubeBroadcasts'
+            });
 
-    <!-- 4. Security Logs & Fraud Detection -->
-    <section class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <!-- Security Alerts -->
-      <div class="glass-card p-6 rounded-2xl space-y-4">
-        <h3 class="text-lg font-bold text-red-400 flex items-center gap-2"><i data-lucide="shield-alert"></i> Security & Audit Alerts</h3>
-        <div id="security-alerts-list" class="space-y-3 max-h-60 overflow-y-auto pr-2">
-          <!-- Live Alerts -->
-        </div>
-      </div>
+            // Realtime Firestore Listener
+            React.useEffect(() => {
+                const unsubscribe = db.collection("stores").onSnapshot((snapshot) => {
+                    let storeList = [];
+                    let totalUsersCount = 0;
+                    let activeCount = 0;
+                    let salesToday = 0;
 
-      <!-- Fraud Logs (Deleted/Edited Sales) -->
-      <div class="glass-card p-6 rounded-2xl space-y-4">
-        <h3 class="text-lg font-bold text-amber-400 flex items-center gap-2"><i data-lucide="alert-triangle"></i> የሰራተኞች Activity/Fraud Log</h3>
-        <div id="fraud-logs-list" class="space-y-3 max-h-60 overflow-y-auto pr-2">
-          <!-- Live Audit Trails -->
-        </div>
-      </div>
-    </section>
+                    snapshot.forEach((doc) => {
+                        const data = doc.data();
+                        storeList.push({ id: doc.id, ...data });
+                        totalUsersCount += (data.staffCount || 1);
+                        if (data.status === 'active') activeCount++;
+                        salesToday += (data.todaySales || 0);
+                    });
 
-    <!-- 5. App System Settings & Broadcast -->
-    <section class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <!-- System Config -->
-      <div class="glass-card p-6 rounded-2xl space-y-4">
-        <h3 class="text-lg font-bold flex items-center gap-2"><i data-lucide="sliders"></i> App Configuration</h3>
-        <div class="flex items-center gap-4">
-          <label class="text-sm text-slate-300">Free Trial Days:</label>
-          <input type="number" id="trial-days-input" value="14" class="bg-slate-800 border border-slate-700 p-2 rounded-xl w-24 text-center">
-          <button onclick="updateTrialDays()" class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-xl text-sm font-medium transition">Save</button>
-        </div>
-      </div>
+                    setStores(storeList);
+                    setStats({
+                        totalStores: storeList.length,
+                        totalUsers: totalUsersCount,
+                        todaySales: salesToday,
+                        activeSubPercentage: storeList.length ? Math.round((activeCount / storeList.length) * 100) : 0
+                    });
+                });
 
-      <!-- Global Broadcast Tool -->
-      <div class="glass-card p-6 rounded-2xl space-y-4">
-        <h3 class="text-lg font-bold flex items-center gap-2"><i data-lucide="megaphone"></i> App Update & Announcement Broadcast</h3>
-        <div class="flex gap-2">
-          <input type="text" id="broadcast-msg" placeholder="ለማንኛውም ተጠቃሚ የሚደርስ መልእክት ፃፍ..." class="bg-slate-800 border border-slate-700 p-2.5 rounded-xl flex-1 text-sm">
-          <button onclick="sendGlobalBroadcast()" class="bg-emerald-600 hover:bg-emerald-700 px-4 py-2 rounded-xl text-sm font-medium transition">Send Alert</button>
-        </div>
-      </div>
-    </section>
+                return () => unsubscribe();
+            }, []);
 
-  </main>
+            // Icons ለመጫን
+            React.useEffect(() => {
+                lucide.createIcons();
+            }, [stores]);
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
-    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
-    import { getFirestore, collection, doc, onSnapshot, updateDoc, query, where, getDoc, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
+            // Status Toggle Action
+            const toggleStoreStatus = async (storeId, currentStatus) => {
+                const newStatus = currentStatus === 'active' ? 'blocked' : 'active';
+                await db.collection("stores").doc(storeId).update({ status: newStatus });
+            };
 
-    // 1. Firebase Configuration
-    const firebaseConfig = {
-      apiKey: "AIzaSyBAvE7awsAm-vio9uRmKYHn5QB99RzlQMA",
-      authDomain: "osama-biznes.firebaseapp.com",
-      projectId: "osama-biznes",
-      storageBucket: "osama-biznes.firebasestorage.app",
-      databaseURL: "https://osama-biznes-default-rtdb.europe-west1.firebasedatabase.app"
-    };
+            // Extend Subscription Action
+            const extendSubscription = async (storeId, months) => {
+                const store = stores.find(s => s.id === storeId);
+                let currentEndDate = store.subscriptionEnd ? store.subscriptionEnd.toDate() : new Date();
+                if (currentEndDate < new Date()) currentEndDate = new Date();
+                currentEndDate.setMonth(currentEndDate.getMonth() + months);
 
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
+                await db.collection("stores").doc(storeId).update({
+                    subscriptionEnd: currentEndDate,
+                    status: 'active'
+                });
+            };
 
-    // Initialize Lucide Icons
-    lucide.createIcons();
+            // Broadcast Send Action
+            const handleSendBroadcast = async () => {
+                if (!broadcast.title || !broadcast.message) {
+                    alert("እባክዎን Title እና Message ያስገቡ!");
+                    return;
+                }
 
-    // 2. Role Security Check
-    onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        const userDoc = await getDoc(doc(db, "users", user.uid));
-        if (!userDoc.exists() || userDoc.data().role !== "super_admin") {
-          document.getElementById("unauthorized-banner").classList.remove("hidden");
-          // Optionally redirect or lock interaction
-        } else {
-          initRealtimeDashboard();
+                await db.collection("broadcasts").add({
+                    platform: broadcast.platform,
+                    title: broadcast.title,
+                    url: broadcast.url || '',
+                    message: broadcast.message,
+                    targetPreference: broadcast.targetPref,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+
+                alert("ማስታወቂያው በተመረጠው ካቴጎሪ መሰረት በተሳካ ሁኔታ ተልኳል!");
+                setBroadcast({ platform: 'youtube', title: '', url: '', message: '', targetPref: 'youtubeBroadcasts' });
+            };
+
+            return (
+                <div className="p-6 max-w-7xl mx-auto">
+                    {/* Header */}
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8 border-b border-slate-800 pb-4">
+                        <div>
+                            <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+                                <i data-lucide="shield-alert" class="text-indigo-500"></i> Super Admin Control Dashboard
+                            </h1>
+                            <p className="text-sm text-slate-400">የሲስተሙን እንቅስቃሴ እና ማስታወቂያዎችን እዚህ ይቆጣጠሩ</p>
+                        </div>
+                        <div className="flex items-center gap-3">
+                            <a href="https://t.me/YourTelegramUsername" target="_blank" className="bg-sky-600/20 text-sky-400 border border-sky-500/30 px-4 py-2 rounded-xl text-sm font-semibold flex items-center gap-2 hover:bg-sky-600/30 transition">
+                                <i data-lucide="message-circle" class="w-4 h-4"></i> የቀጥታ እርዳታ (Telegram)
+                            </a>
+                            <div className="bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 px-4 py-2 rounded-xl text-sm font-semibold">
+                                System Live 🟢
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Analytics Cards */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
+                        <div className="bg-slate-800/50 border border-slate-700/50 rounded-2xl p-5">
+                            <div className="flex items-center justify-between mb-3">
+                                <span className="text-slate-400 text-sm font-medium">Total Stores</span>
+                                <i data-lucide="store" class="text-blue-400"></i>
+                            </div>
+                            <div className="text-2xl font-bold text-white mb-1">{stats.totalStores}</div>
+                            <div className="text-xs text-slate-500">በሲስተሙ የተመዘገቡ</div>
+                        </div>
+                        <div className="bg-slate-800/50 border border-slate-700/50 rounded-2xl p-5">
+                            <div className="flex items-center justify-between mb-3">
+                                <span className="text-slate-400 text-sm font-medium">Total Users</span>
+                                <i data-lucide="users" class="text-emerald-400"></i>
+                            </div>
+                            <div className="text-2xl font-bold text-white mb-1">{stats.totalUsers}</div>
+                            <div className="text-xs text-slate-500">ባለቤቶች + ሰራተኞች</div>
+                        </div>
+                        <div className="bg-slate-800/50 border border-slate-700/50 rounded-2xl p-5">
+                            <div className="flex items-center justify-between mb-3">
+                                <span className="text-slate-400 text-sm font-medium">Today Sales</span>
+                                <i data-lucide="dollar-sign" class="text-amber-400"></i>
+                            </div>
+                            <div className="text-2xl font-bold text-white mb-1">{stats.todaySales.toLocaleString()} ETB</div>
+                            <div className="text-xs text-slate-500">የዛሬው የሲስተም ሽያጭ</div>
+                        </div>
+                        <div className="bg-slate-800/50 border border-slate-700/50 rounded-2xl p-5">
+                            <div className="flex items-center justify-between mb-3">
+                                <span className="text-slate-400 text-sm font-medium">Active Subscriptions</span>
+                                <i data-lucide="award" class="text-purple-400"></i>
+                            </div>
+                            <div className="text-2xl font-bold text-white mb-1">{stats.activeSubPercentage}%</div>
+                            <div className="text-xs text-slate-500">ንቁ ክፍያ ያላቸው</div>
+                        </div>
+                    </div>
+
+                    {/* Main Content Grid */}
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        {/* Table */}
+                        <div className="lg:col-span-2 bg-slate-800/50 border border-slate-700/50 rounded-2xl p-6">
+                            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                                <h2 className="text-lg font-bold text-white">የሱቆች እና Subscription አስተዳደር</h2>
+                                <input
+                                    type="text"
+                                    placeholder="ሱቅ ወይም ስልክ ፈልግ..."
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    className="bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-indigo-500 w-full sm:w-64"
+                                />
+                            </div>
+
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-left text-sm text-slate-300">
+                                    <thead className="bg-slate-900/60 text-slate-400 uppercase text-xs">
+                                        <tr>
+                                            <th className="p-3">የሱቅ ስም</th>
+                                            <th className="p-3">ባለቤት/ስልክ</th>
+                                            <th className="p-3">Status</th>
+                                            <th className="p-3">Subscription</th>
+                                            <th className="p-3 text-center">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-700/50">
+                                        {stores.filter(s => s.name?.toLowerCase().includes(searchTerm.toLowerCase())).map((store) => (
+                                            <tr key={store.id} className="hover:bg-slate-700/20">
+                                                <td className="p-3 font-semibold text-white">{store.name}</td>
+                                                <td className="p-3">
+                                                    <div>{store.ownerName}</div>
+                                                    <div className="text-xs text-slate-400">{store.phone}</div>
+                                                </td>
+                                                <td className="p-3">
+                                                    <span className={`px-2 py-1 text-xs rounded-full font-medium ${
+                                                        store.status === 'active' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-red-500/10 text-red-400 border border-red-500/20'
+                                                    }`}>
+                                                        {store.status}
+                                                    </span>
+                                                </td>
+                                                <td className="p-3">
+                                                    <div className="flex gap-1">
+                                                        <button onClick={() => extendSubscription(store.id, 1)} className="px-2 py-1 bg-indigo-600/30 hover:bg-indigo-600 text-indigo-300 text-xs rounded-lg transition">+1 ወር</button>
+                                                        <button onClick={() => extendSubscription(store.id, 12)} className="px-2 py-1 bg-purple-600/30 hover:bg-purple-600 text-purple-300 text-xs rounded-lg transition">+1 ዓመት</button>
+                                                    </div>
+                                                </td>
+                                                <td className="p-3 text-center">
+                                                    <button onClick={() => toggleStoreStatus(store.id, store.status)} className={`px-3 py-1 rounded-lg text-xs font-medium transition ${store.status === 'active' ? 'bg-red-600/20 text-red-400 hover:bg-red-600/40' : 'bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600/40'}`}>
+                                                        {store.status === 'active' ? 'Block' : 'Unblock'}
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        {/* Right Broadcast Panel */}
+                        <div className="space-y-6">
+                            <div className="bg-slate-800/50 border border-slate-700/50 rounded-2xl p-6 space-y-4">
+                                <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                                    <i data-lucide="send" class="text-indigo-400 w-5 h-5"></i> Social & Ads Broadcast
+                                </h2>
+
+                                <div>
+                                    <label className="text-xs text-slate-400 block mb-1">የማስታወቂያው ዓይነት</label>
+                                    <select 
+                                        value={broadcast.platform}
+                                        onChange={(e) => {
+                                            const p = e.target.value;
+                                            setBroadcast({
+                                                ...broadcast, 
+                                                platform: p,
+                                                targetPref: (p === 'youtube' || p === 'tiktok' || p === 'telegram') ? 'youtubeBroadcasts' : 'systemAnnouncements'
+                                            });
+                                        }}
+                                        className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-sm text-white focus:outline-none focus:border-indigo-500"
+                                    >
+                                        <option value="youtube">📺 YouTube Video Broadcast</option>
+                                        <option value="tiktok">🎵 TikTok Video Promo</option>
+                                        <option value="telegram">✈️ Telegram Channel Link</option>
+                                        <option value="system">🔔 App System Announcement</option>
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label className="text-xs text-slate-400 block mb-1">የማስታወቂያው ርዕስ (Title)</label>
+                                    <input 
+                                        type="text" 
+                                        placeholder="e.g. አዲስ የቢዝነስ ቪዲዮ ተለቋል!" 
+                                        value={broadcast.title}
+                                        onChange={(e) => setBroadcast({ ...broadcast, title: e.target.value })}
+                                        className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-indigo-500"
+                                    />
+                                </div>
+
+                                {broadcast.platform !== 'system' && (
+                                    <div>
+                                        <label className="text-xs text-slate-400 block mb-1">የሊንኩ አድራሻ (URL)</label>
+                                        <input 
+                                            type="url" 
+                                            placeholder="https://..." 
+                                            value={broadcast.url}
+                                            onChange={(e) => setBroadcast({ ...broadcast, url: e.target.value })}
+                                            className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-indigo-500"
+                                        />
+                                    </div>
+                                )}
+
+                                <div>
+                                    <label className="text-xs text-slate-400 block mb-1">የመልእክቱ ዝርዝር (Message)</label>
+                                    <textarea 
+                                        rows="2"
+                                        placeholder="መልእክትዎን እዚህ ይጻፉ..."
+                                        value={broadcast.message}
+                                        onChange={(e) => setBroadcast({ ...broadcast, message: e.target.value })}
+                                        className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-indigo-500"
+                                    />
+                                </div>
+
+                                <div className="p-3 bg-slate-900/60 rounded-xl text-xs text-slate-400 border border-slate-700/40">
+                                    🎯 ይህ ማስታወቂያ በሲቲንግ ገጻቸው ላይ <b>{broadcast.targetPref === 'youtubeBroadcasts' ? 'የቢዝነስ ብሮድካስት ማሳወቂያ' : 'የሲስተም ማሳወቂያ'}</b> ማብሪያን <b>ON</b> ላደረጉ ብቻ ይላካል።
+                                </div>
+
+                                <button onClick={handleSendBroadcast} className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-medium py-2.5 rounded-xl text-sm transition flex justify-center items-center gap-2">
+                                    ማስታወቂያ አስተላልፍ
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
         }
-      }
-    });
 
-    // 3. Real-time Listeners Ecosystem
-    function initRealtimeDashboard() {
-      // 3.1 Realtime Stores & Analytics
-      onSnapshot(collection(db, "stores"), (snapshot) => {
-        const stores = [];
-        let totalUsersCount = 0;
-        let activeCount = 0;
-
-        const tableBody = document.getElementById("stores-table-body");
-        tableBody.innerHTML = "";
-
-        snapshot.forEach((docSnap) => {
-          const store = { id: docSnap.id, ...docSnap.data() };
-          stores.push(store);
-
-          if (store.status === "active") activeCount++;
-          totalUsersCount += (store.staffCount || 1);
-
-          // Render Row
-          const tr = document.createElement("tr");
-          tr.className = "hover:bg-slate-800/50 transition";
-          
-          const isExpired = new Date(store.subscriptionEnd) < new Date();
-          const badgeColor = store.status === "blocked" ? "bg-red-500/10 text-red-400" : (isExpired ? "bg-amber-500/10 text-amber-400" : "bg-emerald-500/10 text-emerald-400");
-          const statusText = store.status === "blocked" ? "Blocked" : (isExpired ? "Expired" : "Active");
-
-          tr.innerHTML = `
-            <td class="p-4 font-semibold">${store.name || "N/A"}</td>
-            <td class="p-4 text-slate-300">${store.ownerName || "N/A"}<br><span class="text-xs text-slate-500">${store.phone || ""}</span></td>
-            <td class="p-4 text-slate-400">${store.createdAt ? new Date(store.createdAt.toDate()).toLocaleDateString() : 'N/A'}</td>
-            <td class="p-4"><span class="px-3 py-1 rounded-full text-xs font-medium ${badgeColor}">${statusText}</span></td>
-            <td class="p-4 text-slate-300">${store.subscriptionEnd ? new Date(store.subscriptionEnd).toLocaleDateString() : 'N/A'}</td>
-            <td class="p-4 text-center space-x-2">
-              <button onclick="toggleBlockStore('${store.id}', '${store.status}')" class="px-3 py-1 bg-slate-700 hover:bg-slate-600 rounded-lg text-xs transition">
-                ${store.status === 'blocked' ? 'Unblock' : 'Block'}
-              </button>
-              <button onclick="extendSub('${store.id}', 30)" class="px-3 py-1 bg-blue-600/30 text-blue-400 hover:bg-blue-600/50 rounded-lg text-xs transition">+1 Month</button>
-            </td>
-          `;
-          tableBody.appendChild(tr);
-        });
-
-        // Update Overview Cards
-        document.getElementById("stat-total-stores").innerText = stores.length;
-        document.getElementById("stat-total-users").innerText = totalUsersCount;
-        document.getElementById("stat-active-sub").innerText = stores.length > 0 ? Math.round((activeCount / stores.length) * 100) + "%" : "0%";
-      });
-
-      // 3.2 Realtime Fraud & Activity Audit Logs
-      onSnapshot(collection(db, "activity_logs"), (snapshot) => {
-        const logsContainer = document.getElementById("fraud-logs-list");
-        logsContainer.innerHTML = "";
-
-        snapshot.forEach((docSnap) => {
-          const log = docSnap.data();
-          const item = document.createElement("div");
-          item.className = "p-3 bg-amber-500/5 border border-amber-500/10 rounded-xl text-xs space-y-1";
-          item.innerHTML = `
-            <div class="flex justify-between font-medium text-amber-300">
-              <span>⚠️ ${log.action || 'ሽያጭ ተሰርዟል/ተቀይሯል'}</span>
-              <span>${log.timestamp ? new Date(log.timestamp.toDate()).toLocaleTimeString() : ''}</span>
-            </div>
-            <p class="text-slate-400">ሰራተኛ: ${log.staffName} | ሱቅ: ${log.storeName}</p>
-            <p class="text-slate-500">ዝርዝር: ${log.details}</p>
-          `;
-          logsContainer.appendChild(item);
-        });
-      });
-    }
-
-    // 4. Action Functions (Exposed to Window)
-    window.toggleBlockStore = async (storeId, currentStatus) => {
-      const newStatus = currentStatus === "blocked" ? "active" : "blocked";
-      await updateDoc(doc(db, "stores", storeId), { status: newStatus });
-    };
-
-    window.extendSub = async (storeId, days) => {
-      const storeRef = doc(db, "stores", storeId);
-      const storeSnap = await getDoc(storeRef);
-      let currentEnd = new Date();
-      
-      if (storeSnap.exists() && storeSnap.data().subscriptionEnd) {
-        const existingDate = new Date(storeSnap.data().subscriptionEnd);
-        if (existingDate > currentEnd) currentEnd = existingDate;
-      }
-      
-      currentEnd.setDate(currentEnd.getDate() + days);
-      await updateDoc(storeRef, { subscriptionEnd: currentEnd.toISOString() });
-      alert("Subscription extended by " + days + " days!");
-    };
-
-    window.sendGlobalBroadcast = async () => {
-      const msg = document.getElementById("broadcast-msg").value;
-      if (!msg) return;
-      await addDoc(collection(db, "broadcasts"), {
-        message: msg,
-        createdAt: serverTimestamp()
-      });
-      document.getElementById("broadcast-msg").value = "";
-      alert("Broadcast alert sent to all store users!");
-    };
-  </script>
+        // Render React Component
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<Dashboard />);
+    </script>
 </body>
 </html>
