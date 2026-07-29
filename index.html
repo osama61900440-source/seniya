@@ -360,6 +360,34 @@
   .edit-item-row input{ padding:8px 9px; font-size:.8rem; }
   @media (max-width:600px){ .edit-item-row{ grid-template-columns:1fr 1fr; } }
 
+  /* ---------- Inventory: analytics insight cards ---------- */
+  .inv-insight-grid{ display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:16px; }
+  .inv-insight-card{
+    background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-sm);
+    padding:13px 15px; min-height:96px;
+  }
+  .inv-insight-title{ font-size:.78rem; font-weight:700; color:var(--text-mut); margin-bottom:8px; }
+  .inv-insight-row{ display:flex; justify-content:space-between; align-items:center; font-size:.8rem; padding:3px 0; }
+  .inv-insight-row .ir-name{ font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:65%; }
+  .inv-insight-row .ir-meta{ color:var(--text-mut); font-size:.72rem; flex-shrink:0; }
+  .inv-insight-row .ir-meta.green{ color:var(--green-dark); font-weight:700; }
+  html.dark .inv-insight-row .ir-meta.green{ color:var(--green); }
+  .inv-insight-row .ir-meta.amber{ color:#b45309; font-weight:700; }
+  html.dark .inv-insight-row .ir-meta.amber{ color:var(--amber); }
+  .inv-insight-empty{ color:var(--text-mut); font-size:.76rem; padding:6px 0; }
+  .inv-insight-total .inv-total-row{ display:flex; justify-content:space-between; align-items:baseline; padding:6px 0; }
+  .inv-insight-total .inv-total-row span{ font-size:.78rem; color:var(--text-mut); }
+  .inv-insight-total .inv-total-row b{ font-size:1.05rem; font-weight:800; }
+  .exp-badge{ font-size:.65rem; font-weight:700; padding:2px 7px; border-radius:999px; margin-left:6px; }
+  .exp-badge.warn{ background:#fef3c7; color:#92400e; }
+  .exp-badge.bad{ background:#fee2e2; color:#991b1b; }
+  html.dark .exp-badge.warn{ background:#3a2c0c; color:#fbbf24; }
+  html.dark .exp-badge.bad{ background:#3a1414; color:#f87171; }
+
+  @media (max-width:600px){
+    .inv-insight-grid{ grid-template-columns:1fr; }
+  }
+
   /* ---------- Inventory: search/category + decluttered collapsible list ---------- */
   .inv-search-row{ display:flex; gap:8px; margin-bottom:12px; }
   .inv-search-row input{
@@ -801,6 +829,26 @@
       <h1 class="page-title">የዕቃ እና መጋዘን አስተዳደር</h1>
       <p class="page-sub">ስቶክ ይከታተሉ እና ያስተካክሉ</p>
 
+      <div class="inv-insight-grid">
+        <div class="inv-insight-card">
+          <div class="inv-insight-title">🔥 ከፍተኛ ሽያጭ ያላቸው ዕቃዎች</div>
+          <div id="insightTopSelling"></div>
+        </div>
+        <div class="inv-insight-card">
+          <div class="inv-insight-title">🆕 አዲስ የገቡ ዕቃዎች</div>
+          <div id="insightRecentlyAdded"></div>
+        </div>
+        <div class="inv-insight-card">
+          <div class="inv-insight-title">🐢 የቆዩ/የማይንቀሳቀሱ ዕቃዎች</div>
+          <div id="insightSlowMoving"></div>
+        </div>
+        <div class="inv-insight-card inv-insight-total">
+          <div class="inv-insight-title">📦 አጠቃላይ ክምችት</div>
+          <div class="inv-total-row"><span>ጠቅላላ የዕቃ ዓይነት</span><b id="insightTotalCount">0</b></div>
+          <div class="inv-total-row"><span>ጠቅላላ የመጋዘን ካፒታል</span><b id="insightTotalValue">0 ብር</b></div>
+        </div>
+      </div>
+
       <div class="inv-search-row">
         <input type="text" id="invSearch" placeholder="🔍 በስም ወይም በኮድ (SKU) ይፈልጉ..." oninput="renderInventory()">
         <select id="invCategorySelect" onchange="renderInventory()">
@@ -812,10 +860,7 @@
         <div class="filter-tabs" id="invTabs">
           <button class="active" data-f="all" onclick="setInvFilter('all',this)">ሁሉም ዕቃዎች</button>
           <button data-f="low" onclick="setInvFilter('low',this)">ያለቁ/ያነሱ</button>
-        </div>
-        <div style="display:flex;gap:8px;">
-          <button class="btn btn-primary" style="width:auto" onclick="setPage('receive')">🚚 አዲስ ጭነት መዝግብ (New Batch)</button>
-          <button class="btn btn-navy" style="width:auto" onclick="openProductModal()">➕ ዕቃ ጨምር</button>
+          <button data-f="expiring" onclick="setInvFilter('expiring',this)">ጊዜው የሚያልቅ/ያለፈ</button>
         </div>
       </div>
       <div class="panel" style="padding:6px 14px;">
@@ -1117,9 +1162,9 @@
 <div class="bottom-nav" id="bottomNav">
   <div class="bn-item active" data-page="dashboard"><span class="ico">🏠</span>ዋና ገጽ</div>
   <div class="bn-item" data-page="pos"><span class="ico">🛒</span>ሽያጭ</div>
-  <div class="bn-item" data-page="inventory"><span class="ico">📦</span>መጋዘን</div>
-  <div class="bn-item" data-page="employees"><span class="ico">👥</span>ሰራተኞች</div>
-  <div class="bn-item" data-page="reports"><span class="ico">📊</span>ሪፖርት</div>
+  <div class="bn-item" data-page="finance"><span class="ico">💸</span>ወጪ መዝገብ</div>
+  <div class="bn-item" data-page="receive"><span class="ico">➕</span>እቃ አስገባ</div>
+  <div class="bn-item" data-page="inventory"><span class="ico">📊</span>መጋዘን</div>
 </div>
 
 <!-- ---- Modals ---- -->
@@ -1272,11 +1317,22 @@ const seedExpenses = [
 ];
 function seedSales(){
   const out=[]; const methods=['ጥሬ ገንዘብ','ቴሌብር','ባንክ','ብድር'];
+  const demoItemSets = [
+    [{id:'p1',name:'ሩዝ 25 ኪግ',qty:2,price:2100}],
+    [{id:'p3',name:'ስኳር 1 ኪግ',qty:5,price:70},{id:'p4',name:'ኮካ ኮላ 1L',qty:3,price:50}],
+    [{id:'p4',name:'ኮካ ኮላ 1L',qty:4,price:50}],
+    [{id:'p6',name:'ፓስታ 500ግ',qty:6,price:55}],
+    [{id:'p3',name:'ስኳር 1 ኪግ',qty:8,price:70}],
+    [{id:'p7',name:'ሻይ ቅጠል',qty:2,price:120},{id:'p4',name:'ኮካ ኮላ 1L',qty:2,price:50}],
+    [{id:'p1',name:'ሩዝ 25 ኪግ',qty:1,price:2100}],
+    [{id:'p4',name:'ኮካ ኮላ 1L',qty:5,price:50}],
+    [{id:'p3',name:'ስኳር 1 ኪግ',qty:3,price:70}],
+  ];
   for(let i=0;i<9;i++){
     out.push({
       id:'RCT'+(1000+i), time:`ዛሬ ${9+i}:${(i*7)%60<10?'0':''}${(i*7)%60}`,
       method: methods[i%4], total: 300 + (i*137)%1800, branch: i%3===0?'adama':'addis',
-      date: `2026-07-${18+(i%6)}`
+      date: `2026-07-${18+(i%6)}`, items: demoItemSets[i]
     });
   }
   return out;
@@ -1598,7 +1654,8 @@ async function completeSale(){
     id:'RCT'+Math.floor(1000+Math.random()*8999),
     time:`ዛሬ ${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')}`,
     date: now.toISOString().slice(0,10),
-    method: STATE.payMethod, total, branch: STATE.branch
+    method: STATE.payMethod, total, branch: STATE.branch,
+    items: STATE.cart.map(c=>({ id:c.id, name:c.name, qty:c.qty, price:c.price }))
   });
   STATE.cart = [];
   renderCart(); renderProductGrid(); renderInventory(); renderDashboard();
@@ -1625,13 +1682,76 @@ function toggleInvRow(id){
   const row = document.querySelector(`.inv-row[data-id="${id}"]`);
   if(row) row.classList.toggle('expanded');
 }
+function daysUntil(dateStr){
+  if(!dateStr) return null;
+  return Math.ceil((new Date(dateStr) - new Date()) / 86400000);
+}
+function expiryBadgeHtml(p){
+  const d = daysUntil(p.expiry);
+  if(d===null) return '';
+  if(d < 0) return `<span class="exp-badge bad">ጊዜው አልፏል</span>`;
+  if(d <= 30) return `<span class="exp-badge warn">${d} ቀን ቀርቷል</span>`;
+  return '';
+}
+
+/* ---- Inventory analytics: top-selling / recently-added / slow-moving / totals ---- */
+function renderInventoryInsights(){
+  const topEl = document.getElementById('insightTopSelling');
+  const newEl = document.getElementById('insightRecentlyAdded');
+  const slowEl = document.getElementById('insightSlowMoving');
+  if(!topEl || !newEl || !slowEl) return; // only render when the inventory page markup is present
+
+  // ---- Top selling: aggregate qty sold per product across recorded sale line-items ----
+  const soldQty = {}; // productId -> qty
+  STATE.sales.forEach(s=>{
+    (s.items||[]).forEach(it=>{ soldQty[it.id] = (soldQty[it.id]||0) + it.qty; });
+  });
+  const topSellers = Object.entries(soldQty)
+    .map(([id,qty])=>({ product: STATE.products.find(p=>p.id===id), qty }))
+    .filter(x=>x.product)
+    .sort((a,b)=>b.qty-a.qty)
+    .slice(0,4);
+  topEl.innerHTML = topSellers.length
+    ? topSellers.map(x=>`<div class="inv-insight-row"><span class="ir-name">${x.product.name}</span><span class="ir-meta green">${x.qty} ተሽጧል</span></div>`).join('')
+    : `<div class="inv-insight-empty">ገና የተመዘገበ ሽያጭ የለም</div>`;
+
+  // ---- Recently added: newest createdAt / lastRestockedAt across products ----
+  const recent = STATE.products
+    .map(p=>({ p, at: p.lastRestockedAt || p.createdAt }))
+    .filter(x=>x.at)
+    .sort((a,b)=> new Date(b.at) - new Date(a.at))
+    .slice(0,4);
+  newEl.innerHTML = recent.length
+    ? recent.map(x=>`<div class="inv-insight-row"><span class="ir-name">${x.p.name}</span><span class="ir-meta">${x.at.slice(0,10)}</span></div>`).join('')
+    : `<div class="inv-insight-empty">የቅርብ ጊዜ ጭነት የለም</div>`;
+
+  // ---- Slow-moving: has stock, never appears in soldQty, ranked by tied-up capital ----
+  const slow = STATE.products
+    .filter(p=>p.stock>0 && !soldQty[p.id])
+    .map(p=>({ p, value: p.stock*p.cost }))
+    .sort((a,b)=>b.value-a.value)
+    .slice(0,4);
+  slowEl.innerHTML = slow.length
+    ? slow.map(x=>`<div class="inv-insight-row"><span class="ir-name">${x.p.name}</span><span class="ir-meta amber">${birr(x.value)}</span></div>`).join('')
+    : `<div class="inv-insight-empty">ሁሉም ዕቃዎች እየተሸጡ ነው 👍</div>`;
+
+  // ---- Totals ----
+  document.getElementById('insightTotalCount').textContent = STATE.products.length;
+  const totalValue = STATE.products.reduce((a,p)=>a + p.stock*p.cost, 0);
+  document.getElementById('insightTotalValue').textContent = birr(Math.round(totalValue));
+}
+
 function renderInventory(){
   renderInvCategoryOptions();
+  renderInventoryInsights();
   const search = (document.getElementById('invSearch').value||'').trim().toLowerCase();
   const cat = document.getElementById('invCategorySelect').value || 'ሁሉም';
 
   let list = STATE.products;
   if(STATE.invFilter==='low') list = list.filter(p=>p.stock<=5);
+  if(STATE.invFilter==='expiring') list = list.filter(p=>{
+    const d = daysUntil(p.expiry); return d!==null && d<=30;
+  });
   if(cat !== 'ሁሉም') list = list.filter(p=>p.cat===cat);
   if(search) list = list.filter(p=>p.name.toLowerCase().includes(search) || (p.sku||'').toLowerCase().includes(search));
 
@@ -1647,7 +1767,7 @@ function renderInventory(){
           <div class="inv-head-left">
             <div class="inv-photo">${photoHtml}</div>
             <div class="inv-name-wrap">
-              <div class="inv-name">${p.name}</div>
+              <div class="inv-name">${p.name}${expiryBadgeHtml(p)}</div>
               <div class="inv-sku-mini">${p.sku||''}</div>
             </div>
           </div>
@@ -1736,7 +1856,8 @@ async function saveProduct(){
     cost: Number(document.getElementById('pmCost').value)||0,
     price: Number(document.getElementById('pmPrice').value)||0,
     stock: Number(document.getElementById('pmStock').value)||0,
-    emoji:''   // no default placeholder photo — stays blank until the user uploads one
+    emoji:'',   // no default placeholder photo — stays blank until the user uploads one
+    createdAt: new Date().toISOString()
   });
   ['pmName','pmSku','pmCat','pmCost','pmPrice','pmStock'].forEach(id=>document.getElementById(id).value='');
   closeModal('productModal');
@@ -1849,146 +1970,4 @@ async function resetData(){
   toast('🔄 ናሙና መረጃ ዳግም ተጀምሯል');
 }
 
-/* ===================== EXPORT ===================== */
-function exportCsv(){
-  let csv = 'ደረሰኝ,ቀን,ቅርንጫፍ,ዘዴ,ድምር\n';
-  STATE.sales.forEach(s=>{ csv += `${s.id},${s.date},${s.branch},${s.method},${s.total}\n`; });
-  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a'); a.href = url; a.download = 'gurage-pos-sales.csv'; a.click();
-  URL.revokeObjectURL(url);
-  toast('⬇️ CSV ወርዷል');
-}
-
-/* ===================== BATCH / STOCK REGISTRATION WIZARD ===================== */
-const PRODUCT_ICONS = ['📦','👕','👖','👟','👜','🧥','🛏️','🧴','🍚','🛢️'];
-
-function resetWizard(){
-  WIZ = { totalExpense:0, itemCount:0, items:[] };
-  ['rbPlate','rbDriver','rbTransportCost','rbLoadingCost','rbItemTypeCount'].forEach(id=>{
-    const el = document.getElementById(id); if(el) el.value='';
-  });
-  document.getElementById('rbTotalExpenseShow').textContent = '0 ብር';
-  document.getElementById('itemRowsContainer').innerHTML = '';
-  goToStep(1);
-}
-
-function updateTotalExpense(){
-  const t = Number(document.getElementById('rbTransportCost').value)||0;
-  const l = Number(document.getElementById('rbLoadingCost').value)||0;
-  WIZ.totalExpense = t + l;
-  document.getElementById('rbTotalExpenseShow').textContent = birr(WIZ.totalExpense) + (t||l ? ` (${birr(t)} ትራንስፖርት + ${birr(l)} አውራጅ)` : '');
-}
-
-function goToStep(n){
-  document.querySelectorAll('.wz-panel').forEach(p=>p.classList.remove('active'));
-  document.getElementById('wz-'+n).classList.add('active');
-  document.querySelectorAll('.wz-step').forEach(s=>{
-    const sn = Number(s.dataset.s);
-    s.classList.toggle('active', sn===n);
-    s.classList.toggle('done', sn<n);
-  });
-}
-
-/* ---- Item-name autocomplete: search Main Inventory as the user types ---- */
-function getProductMatches(query){
-  const q = query.trim().toLowerCase();
-  if(!q) return [];
-  return STATE.products.filter(p=>
-    p.name.toLowerCase().includes(q) || (p.sku||'').toLowerCase().includes(q)
-  ).slice(0,8);
-}
-function renderAcList(listEl, query){
-  const matches = getProductMatches(query);
-  let html = matches.map(p=>`
-    <div class="ac-item" data-pid="${p.id}" data-name="${p.name.replace(/"/g,'&quot;')}" data-sku="${(p.sku||'').replace(/"/g,'&quot;')}" data-cost="${p.cost}" data-price="${p.price}">
-      <span>${p.emoji||'📦'} ${p.name} ${p.sku?`<span class="ac-meta">(${p.sku})</span>`:''}</span>
-      <span class="ac-meta">ስቶክ ${p.stock} · ${p.cost} ብር</span>
-    </div>`).join('');
-  if(query.trim()){
-    html += `<div class="ac-item ac-new" data-new="1">➕ «${query.trim()}» የሚባል አዲስ እቃ መዝግብ</div>`;
-  }
-  listEl.innerHTML = html;
-  listEl.classList.toggle('show', html.length>0);
-}
-(function initItemAutocomplete(){
-  const box = document.getElementById('itemRowsContainer');
-  if(!box) return;
-
-  box.addEventListener('input', (e)=>{
-    if(!e.target.classList.contains('ir-name')) return;
-    const row = e.target.closest('.item-row');
-    row.dataset.pid = '';                              // typing = searching again, unlink any prior match
-    row.querySelector('.ir-badge').style.display = 'none';
-    renderAcList(row.querySelector('.ac-list'), e.target.value);
-  });
-
-  box.addEventListener('focusin', (e)=>{
-    if(!e.target.classList.contains('ir-name')) return;
-    const row = e.target.closest('.item-row');
-    if(e.target.value.trim()) renderAcList(row.querySelector('.ac-list'), e.target.value);
-  });
-
-  box.addEventListener('click', (e)=>{
-    const acItem = e.target.closest('.ac-item');
-    if(!acItem) return;
-    const row = acItem.closest('.item-row');
-    const list = row.querySelector('.ac-list');
-
-    if(acItem.dataset.new){
-      // No match found → register as a brand-new item; user fills cost/qty/price manually.
-      row.dataset.pid = '';
-      row.querySelector('.ir-badge').style.display = 'none';
-      list.classList.remove('show');
-      row.querySelector('.ir-qty').focus();
-      return;
-    }
-    // Existing product picked from Main Inventory → auto-fill cost/price and remember its ID
-    // so Step 4 merges quantity directly into that product instead of creating a duplicate.
-    row.dataset.pid = acItem.dataset.pid;
-    row.querySelector('.ir-name').value = acItem.dataset.name;
-    row.querySelector('.ir-sku').value = acItem.dataset.sku;
-    row.querySelector('.ir-cost').value = acItem.dataset.cost;
-    row.querySelector('.ir-price').value = acItem.dataset.price;
-    row.querySelector('.ir-badge').style.display = 'inline-block';
-    list.classList.remove('show');
-    row.querySelector('.ir-qty').focus();
-    toast('🔗 ነባር እቃ ተመርጧል — ዋጋ በራስ-ሰር ተሞልቷል (መቀየር ይችላሉ)');
-  });
-})();
-document.addEventListener('click', (e)=>{
-  if(e.target.closest('.ac-wrap')) return;
-  document.querySelectorAll('.ac-list.show').forEach(l=>l.classList.remove('show'));
-});
-
-function goToStep2(){
-  const plate = document.getElementById('rbPlate').value.trim();
-  const driver = document.getElementById('rbDriver').value.trim();
-  const count = Number(document.getElementById('rbItemTypeCount').value);
-  updateTotalExpense();
-
-  if(!plate || !driver){ toast('⚠️ የመኪና ታርጋ እና የአራጋፊ ስም ያስፈልጋል'); return; }
-  if(!count || count < 1){ toast('⚠️ የእቃዎች ዓይነት ብዛት ትክክለኛ ቁጥር መሆን አለበት'); return; }
-  if(WIZ.totalExpense <= 0){ toast('⚠️ የትራንስፖርት ወይም አውራጅ ወጪ ያስገቡ'); return; }
-
-  WIZ.itemCount = count;
-  document.getElementById('itemCountLabel').textContent = count;
-
-  const box = document.getElementById('itemRowsContainer');
-  box.innerHTML = '';
-  for(let i=0;i<count;i++){
-    box.insertAdjacentHTML('beforeend', `
-      <div class="item-row" data-idx="${i}" data-pid="">
-        <div class="item-row-head">
-          <b>እቃ ${i+1}</b>
-          <span style="display:flex;align-items:center;gap:6px;">
-            <span class="ir-badge" style="display:none">🔗 ነባር እቃ</span>
-            <span style="font-size:1.1rem">${PRODUCT_ICONS[i % PRODUCT_ICONS.length]}</span>
-          </span>
-        </div>
-        <div class="item-row-grid">
-          <div class="field ac-wrap">
-            <label>የእቃው ስም (ይፈልጉ ወይም አዲስ ይጻፉ)</label>
-            <input type="text" class="ir-name" placeholder="ለምሳሌ፦ ጫማ" autocomplete="off">
-            <div class="ac-list"></div>
-         
+/* ==============
