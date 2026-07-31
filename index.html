@@ -1,1667 +1,186 @@
-<!DOCTYPE html>
-<html lang="am">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>Gurage POS | ዳሽቦርድ</title>
-<meta name="description" content="Gurage POS App — ለኢትዮጵያ አነስተኛና መካከለኛ ነጋዴዎች የተዘጋጀ የሽያጭ፣ መጋዘን እና ፋይናንስ አስተዳደር መተግበሪያ">
-<meta name="theme-color" content="#1E3A8A">
-<meta name="color-scheme" content="light dark">
-
-<!-- PWA / installable app -->
-<link rel="manifest" href="manifest.json">
-<link rel="icon" href="icons/icon-192.png" type="image/png">
-<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Gurage POS">
-<meta name="format-detection" content="telephone=no">
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Ethiopic:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
-<style>
-  :root{
-    --navy:#1E3A8A; --navy-dark:#152a63; --navy-light:#3B5BC0;
-    --green:#02BE63; --green-dark:#029650;
-    --amber:#F59E0B; --red:#EF4444;
-    --bg:#F8FAFC; --surface:#FFFFFF; --border:#E2E8F0;
-    --text:#0F172A; --text-mut:#64748B;
-    --radius:14px; --radius-sm:9px;
-    --font-base:16px;
-    --shadow: 0 1px 3px rgba(15,23,42,.06), 0 1px 2px rgba(15,23,42,.04);
-    --shadow-lg: 0 10px 30px rgba(15,23,42,.10);
-  }
-  html.dark{
-    --bg:#0B1220; --surface:#121a2b; --border:#1f2a40;
-    --text:#E8EDF6; --text-mut:#8B9AB3;
-  }
-  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
-  html{font-size:var(--font-base); overscroll-behavior-y:none;}
-  body{
-    margin:0; background:var(--bg); color:var(--text);
-    font-family:'Noto Sans Ethiopic','Inter',sans-serif;
-    -webkit-font-smoothing:antialiased;
-    transition:background .25s ease, color .25s ease;
-    overscroll-behavior-y:none;
-    padding-top:env(safe-area-inset-top);
-  }
-  button, input, select{ font-family:inherit; }
-  button{ -webkit-tap-highlight-color:transparent; }
-  ::selection{ background: var(--green); color:#fff; }
-  a{ -webkit-touch-callout:none; }
-
-  /* ---------- Splash screen ---------- */
-  #splash{
-    position:fixed; inset:0; z-index:999; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px;
-    background: radial-gradient(1200px 600px at 50% -10%, #24439e 0%, var(--navy) 45%, var(--navy-dark) 100%);
-    transition:opacity .4s ease, visibility .4s ease;
-  }
-  #splash.hide{ opacity:0; visibility:hidden; pointer-events:none; }
-  #splash .splash-mark{
-    width:132px; height:132px; border-radius:26px; overflow:hidden;
-    box-shadow:0 20px 50px rgba(0,0,0,.35); animation:pop .5s cubic-bezier(.34,1.56,.64,1);
-  }
-  #splash .splash-mark img{ width:100%; height:100%; object-fit:cover; display:block; }
-  #splash .splash-name{ color:#fff; font-weight:800; font-size:1.15rem; letter-spacing:.2px; }
-  #splash .splash-dot{ width:34px; height:4px; border-radius:99px; background:rgba(255,255,255,.25); overflow:hidden; }
-  #splash .splash-dot::after{ content:''; display:block; width:60%; height:100%; background:var(--green); animation:load 1.1s ease-in-out infinite; }
-  @keyframes load{ 0%{ transform:translateX(-100%);} 100%{ transform:translateX(220%);} }
-  @keyframes pop{ from{ transform:scale(.6); opacity:0;} to{ transform:scale(1); opacity:1;} }
-
-  /* ---------- Offline banner ---------- */
-  #offlineBar{
-    display:none; align-items:center; gap:8px; justify-content:center;
-    padding:9px 12px; font-size:.85rem; font-weight:600; color:#fff;
-    background: var(--amber); position:sticky; top:0; z-index:60;
-  }
-  #offlineBar.show{ display:flex; }
-  #offlineBar.synced{ background: var(--green); }
-
-  #trialBanner{
-    display:none; align-items:center; justify-content:center; gap:10px; flex-wrap:wrap;
-    padding:9px 14px; font-size:.82rem; font-weight:700; color:#78350f;
-    background:#fef3c7; border-bottom:1px solid #fde68a; position:sticky; top:0; z-index:59;
-  }
-  #trialBanner.show{ display:flex; }
-  #trialBanner button{
-    background:var(--navy); color:#fff; border:none; border-radius:8px; padding:5px 12px; font-weight:700; font-size:.76rem; cursor:pointer;
-  }
-  html.dark #trialBanner{ background:#3a2c0c; color:#fbbf24; border-color:#57430f; }
-
-  #lockScreen{
-    display:none; position:fixed; inset:0; z-index:500; align-items:center; justify-content:center; padding:20px;
-    background: radial-gradient(1200px 600px at 50% -10%, #24439e 0%, var(--navy) 45%, var(--navy-dark) 100%);
-  }
-  #lockScreen.show{ display:flex; }
-
-  /* ---------- Auth screen ---------- */
-  #authScreen{
-    min-height:100vh; display:flex; align-items:center; justify-content:center;
-    background: radial-gradient(1200px 600px at 50% -10%, #24439e 0%, var(--navy) 45%, var(--navy-dark) 100%);
-    padding:24px;
-  }
-  .auth-card{
-    width:100%; max-width:380px; background:var(--surface); border-radius:20px;
-    padding:34px 28px; box-shadow: var(--shadow-lg);
-  }
-  .auth-logo{
-    width:72px; height:72px; border-radius:18px; overflow:hidden;
-    margin:0 auto 14px; box-shadow:var(--shadow);
-  }
-  .auth-logo img{ width:100%; height:100%; object-fit:cover; display:block; }
-  .auth-card h1{ text-align:center; font-size:1.3rem; margin:0 0 4px; }
-  .auth-card p.sub{ text-align:center; color:var(--text-mut); font-size:.85rem; margin:0 0 22px; }
-  .field{ margin-bottom:14px; }
-  .field label{ display:block; font-size:.8rem; font-weight:600; margin-bottom:6px; color:var(--text-mut); }
-  .field input, .field select{
-    width:100%; padding:12px 14px; border-radius:10px; border:1.5px solid var(--border);
-    background:var(--bg); color:var(--text); font-size:.95rem; outline:none;
-    transition:border-color .15s;
-  }
-  .field input:focus, .field select:focus{ border-color:var(--navy); }
-  .otp-row{ display:flex; gap:8px; justify-content:space-between; }
-  .otp-row input{ text-align:center; font-size:1.2rem; font-weight:700; padding:10px 0; width:44px; }
-  .btn{
-    display:inline-flex; align-items:center; justify-content:center; gap:6px;
-    border:none; border-radius:10px; padding:12px 18px; font-weight:700; font-size:.92rem;
-    cursor:pointer; transition:transform .08s ease, filter .15s ease; width:100%;
-  }
-  .btn:active{ transform:scale(.98); }
-  .btn-primary{ background:var(--green); color:#fff; }
-  .btn-primary:hover{ filter:brightness(1.06); }
-  .btn-navy{ background:var(--navy); color:#fff; }
-  .btn-ghost{ background:transparent; color:var(--navy); border:1.5px solid var(--border); }
-  html.dark .btn-ghost{ color:#cfe0ff; }
-  .btn-outline-red{ background:transparent; color:var(--red); border:1.5px solid var(--red); }
-  .btn-sm{ padding:8px 12px; font-size:.8rem; width:auto; }
-  .auth-trial{
-    margin-top:16px; text-align:center; font-size:.78rem; color:var(--text-mut);
-    background:var(--bg); border-radius:10px; padding:8px;
-  }
-  .auth-switch{ text-align:center; margin-top:14px; font-size:.82rem; color:var(--text-mut); }
-  .auth-switch a{ color:var(--green-dark); font-weight:700; cursor:pointer; text-decoration:none; }
-
-  /* ---------- App shell ---------- */
-  #app{ display:none; min-height:100vh; }
-  #app.active{ display:flex; }
-
-  .sidebar{
-    width:236px; flex-shrink:0; background:var(--navy); color:#e9edf9;
-    display:flex; flex-direction:column; padding:18px 12px; position:sticky; top:0; height:100vh;
-  }
-  .sidebar-brand{ display:flex; align-items:center; gap:10px; padding:6px 8px 20px; }
-  .sidebar-brand .mark{ width:34px; height:34px; border-radius:9px; overflow:hidden; flex-shrink:0; }
-  .sidebar-brand .mark img{ width:100%; height:100%; object-fit:cover; display:block; }
-  .sidebar-brand .name{ font-weight:800; font-size:1.02rem; letter-spacing:.2px; }
-  .sidebar-brand .name small{ display:block; font-weight:500; font-size:.68rem; color:#b9c6ef; }
-  .nav-item{
-    display:flex; align-items:center; gap:12px; padding:10px 12px; border-radius:10px;
-    color:#cdd9f7; text-decoration:none; font-size:.88rem; font-weight:600; cursor:pointer;
-    margin-bottom:2px; transition:background .15s;
-  }
-  .nav-item .ico{ font-size:1.05rem; width:20px; text-align:center; }
-  .nav-item:hover{ background:rgba(255,255,255,.08); color:#fff; }
-  .nav-item.active{ background:var(--green); color:#fff; }
-  .sidebar-foot{ margin-top:auto; padding-top:12px; border-top:1px solid rgba(255,255,255,.12); }
-  .sidebar-foot .nav-item{ color:#b9c6ef; }
-
-  .main{ flex:1; min-width:0; display:flex; flex-direction:column; }
-  .topbar{
-    display:flex; align-items:center; justify-content:space-between; gap:12px;
-    padding:14px 22px; background:var(--surface); border-bottom:1px solid var(--border);
-    position:sticky; top:0; z-index:20;
-  }
-  .branch-select{ display:flex; align-items:center; gap:8px; font-weight:700; font-size:.95rem; }
-  .branch-select select{
-    border:none; background:transparent; font-weight:700; font-size:.95rem; color:var(--text); cursor:pointer;
-  }
-  .topbar-right{ display:flex; align-items:center; gap:14px; }
-  .bell{ position:relative; font-size:1.2rem; cursor:pointer; }
-  .bell .badge{
-    position:absolute; top:-4px; right:-6px; background:var(--red); color:#fff; font-size:.62rem;
-    font-weight:800; border-radius:999px; padding:1px 5px; min-width:16px; text-align:center;
-  }
-  .avatar{
-    width:34px; height:34px; border-radius:50%; background:var(--green); color:#fff;
-    display:flex; align-items:center; justify-content:center; font-weight:800; font-size:.85rem; cursor:pointer;
-  }
-  .menu-btn{ display:none; background:none; border:none; font-size:1.3rem; cursor:pointer; color:var(--text); }
-
-  .page{ display:none; padding:22px; animation:fadein .2s ease; }
-  .page.active{ display:block; }
-  @keyframes fadein{ from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:none;} }
-  .page-title{ font-size:1.25rem; font-weight:800; margin:0 0 4px; }
-  .page-sub{ color:var(--text-mut); font-size:.85rem; margin:0 0 20px; }
-
-  /* Cards */
-  .cards-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:22px; }
-  .kpi-card{
-    background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
-    padding:16px 18px; box-shadow:var(--shadow);
-  }
-  .kpi-card .lab{ font-size:.78rem; color:var(--text-mut); font-weight:600; display:flex; align-items:center; gap:6px; }
-  .kpi-card .val{ font-size:1.5rem; font-weight:800; margin-top:6px; }
-  .kpi-card.green{ border-top:3px solid var(--green); }
-  .kpi-card.navy{ border-top:3px solid var(--navy); }
-  .kpi-card.red{ border-top:3px solid var(--red); }
-  .kpi-card.amber{ border-top:3px solid var(--amber); }
-
-  .panel{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:18px; box-shadow:var(--shadow); }
-  .panel + .panel{ margin-top:16px; }
-  .panel-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
-  .panel-head h3{ margin:0; font-size:1rem; }
-
-  .quick-actions{ display:flex; gap:10px; margin-bottom:20px; flex-wrap:wrap; }
-  .quick-actions .btn{ width:auto; }
-
-  table{ width:100%; border-collapse:collapse; font-size:.86rem; }
-  thead th{
-    text-align:right; font-size:.72rem; text-transform:uppercase; letter-spacing:.03em;
-    color:var(--text-mut); padding:10px 10px; border-bottom:1.5px solid var(--border);
-  }
-  tbody td{ padding:11px 10px; border-bottom:1px solid var(--border); }
-  tbody tr:hover{ background:var(--bg); }
-  .pill{ display:inline-block; padding:3px 10px; border-radius:999px; font-size:.72rem; font-weight:700; }
-  .pill.low{ background:#fef3c7; color:#92400e; }
-  .pill.out{ background:#fee2e2; color:#991b1b; }
-  .pill.ok{ background:#d1fae5; color:#065f46; }
-  html.dark .pill.low{ background:#3a2c0c; color:#fbbf24; }
-  html.dark .pill.out{ background:#3a1414; color:#f87171; }
-  html.dark .pill.ok{ background:#0c3327; color:#34d399; }
-
-  /* POS layout */
-  .pos-wrap{ display:grid; grid-template-columns:1fr 340px; gap:16px; align-items:start; }
-  .pos-search{ display:flex; gap:8px; margin-bottom:14px; }
-  .pos-search input{ flex:1; padding:12px 14px; border-radius:10px; border:1.5px solid var(--border); background:var(--surface); color:var(--text); font-size:.9rem; }
-  .pos-search button{ background:var(--navy); color:#fff; border:none; border-radius:10px; padding:0 16px; cursor:pointer; font-size:1.1rem; }
-  .filter-tabs{ display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap; }
-  .filter-tabs button{
-    padding:7px 14px; border-radius:999px; border:1.5px solid var(--border); background:var(--surface);
-    color:var(--text-mut); font-weight:700; font-size:.78rem; cursor:pointer;
-  }
-  .filter-tabs button.active{ background:var(--navy); border-color:var(--navy); color:#fff; }
-  .product-grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(150px,1fr)); gap:12px; }
-  .product-card{
-    background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-sm);
-    padding:12px; cursor:pointer; transition:box-shadow .15s, transform .1s;
-  }
-  .product-card:hover{ box-shadow:var(--shadow-lg); transform:translateY(-2px); }
-  .product-card .thumb{
-    width:100%; aspect-ratio:1.3/1; border-radius:9px; margin-bottom:8px;
-    display:flex; align-items:center; justify-content:center; font-size:1.8rem;
-    background:linear-gradient(135deg,#eef2ff,#e0f2ea);
-  }
-  html.dark .product-card .thumb{ background:linear-gradient(135deg,#1a2540,#122a24); }
-  .product-card .pname{ font-weight:700; font-size:.85rem; margin-bottom:2px; }
-  .product-card .pmeta{ display:flex; justify-content:space-between; align-items:center; font-size:.78rem; color:var(--text-mut); }
-  .product-card .pmeta b{ color:var(--green-dark); font-size:.85rem; }
-  html.dark .product-card .pmeta b{ color:var(--green); }
-
-  .cart-panel{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:16px; position:sticky; top:80px; }
-  .cart-panel h3{ margin:0 0 12px; font-size:1rem; }
-  .cart-items{ max-height:280px; overflow:auto; margin-bottom:12px; }
-  .cart-item{ display:flex; align-items:center; gap:8px; padding:8px 0; border-bottom:1px solid var(--border); font-size:.82rem; }
-  .cart-item .ci-name{ flex:1; font-weight:600; }
-  .qty-ctrl{ display:flex; align-items:center; gap:6px; }
-  .qty-ctrl button{
-    width:22px; height:22px; border-radius:6px; border:1px solid var(--border); background:var(--bg); cursor:pointer; font-weight:800; color:var(--text);
-  }
-  .cart-empty{ text-align:center; color:var(--text-mut); font-size:.82rem; padding:26px 0; }
-  .cart-total-row{ display:flex; justify-content:space-between; font-weight:800; font-size:1.05rem; padding:10px 0; border-top:1.5px solid var(--border); margin-bottom:10px; }
-  .paymethods{ display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:12px; }
-  .paymethods button{
-    padding:9px 6px; border-radius:9px; border:1.5px solid var(--border); background:var(--surface); color:var(--text);
-    font-weight:700; font-size:.78rem; cursor:pointer;
-  }
-  .paymethods button.active{ border-color:var(--green); background:#ecfdf5; color:var(--green-dark); }
-  html.dark .paymethods button.active{ background:#0c2a20; color:#34d399; }
-
-  .toolbar{ display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; gap:10px; flex-wrap:wrap; }
-
-  /* ---------- Batch / Stock Registration Wizard ---------- */
-  .wizard-steps{ display:flex; align-items:center; margin-bottom:20px; max-width:520px; }
-  .wz-step{ display:flex; flex-direction:column; align-items:center; gap:6px; flex-shrink:0; }
-  .wz-num{
-    width:32px; height:32px; border-radius:50%; background:var(--border); color:var(--text-mut);
-    display:flex; align-items:center; justify-content:center; font-weight:800; font-size:.85rem; transition:all .2s;
-  }
-  .wz-lab{ font-size:.72rem; font-weight:700; color:var(--text-mut); white-space:nowrap; }
-  .wz-step.active .wz-num{ background:var(--navy); color:#fff; }
-  .wz-step.active .wz-lab{ color:var(--navy); }
-  .wz-step.done .wz-num{ background:var(--green); color:#fff; }
-  .wz-line{ flex:1; height:2px; background:var(--border); margin:0 6px 18px; min-width:24px; }
-  .wz-panel{ display:none; }
-  .wz-panel.active{ display:block; animation:fadein .2s ease; }
-
-  .form-grid{ display:grid; grid-template-columns:1fr 1fr; gap:14px 16px; margin-bottom:6px; }
-  .readonly-box{
-    padding:12px 14px; border-radius:10px; background:var(--bg); border:1.5px dashed var(--border);
-    font-weight:800; color:var(--green-dark); font-size:.95rem;
-  }
-  html.dark .readonly-box{ color:var(--green); }
-
-  .item-row{
-    background:var(--bg); border:1px solid var(--border); border-radius:var(--radius-sm);
-    padding:14px; margin-bottom:12px;
-  }
-  .item-row-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
-  .item-row-head b{ font-size:.85rem; color:var(--navy); }
-  html.dark .item-row-head b{ color:#8fb3ff; }
-  .item-row-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
-  .item-row-grid .field{ margin-bottom:0; }
-  .item-row-grid label{ font-size:.7rem; }
-  .item-row-grid input{ padding:9px 10px; font-size:.85rem; }
-
-  .ac-wrap{ position:relative; }
-  .ac-list{
-    display:none; position:absolute; top:100%; left:0; right:0; margin-top:4px;
-    background:var(--surface); border:1px solid var(--border); border-radius:10px;
-    max-height:230px; overflow-y:auto; z-index:30; box-shadow:var(--shadow-lg);
-  }
-  .ac-list.show{ display:block; }
-  .ac-item{
-    padding:9px 12px; cursor:pointer; font-size:.82rem; display:flex; justify-content:space-between; align-items:center; gap:8px;
-    border-bottom:1px solid var(--border);
-  }
-  .ac-item:last-child{ border-bottom:none; }
-  .ac-item:hover, .ac-item.hl{ background:var(--bg); }
-  .ac-item .ac-meta{ color:var(--text-mut); font-size:.72rem; white-space:nowrap; }
-  .ac-item.ac-new{ color:var(--green-dark); font-weight:700; }
-  html.dark .ac-item.ac-new{ color:var(--green); }
-  .ir-badge{
-    font-size:.65rem; font-weight:700; padding:2px 8px; border-radius:999px; background:#d1fae5; color:#065f46;
-  }
-  html.dark .ir-badge{ background:#0c3327; color:#34d399; }
-
-  .receipt-meta{ display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:16px; }
-  .receipt-meta > div{ background:var(--bg); border-radius:10px; padding:10px 12px; }
-  .rm-lab{ display:block; font-size:.68rem; color:var(--text-mut); font-weight:700; margin-bottom:2px; }
-  .rm-val{ display:block; font-size:.95rem; font-weight:800; }
-  .table-container{ overflow-x:auto; }
-
-  .batch-card{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:16px 18px; margin-bottom:14px; }
-  .batch-card-head{ display:flex; justify-content:space-between; align-items:flex-start; gap:10px; flex-wrap:wrap; margin-bottom:10px; }
-  .batch-card-head .bc-title{ font-weight:800; font-size:.95rem; }
-  .batch-card-head .bc-sub{ font-size:.78rem; color:var(--text-mut); margin-top:2px; }
-  .batch-card-actions{ display:flex; gap:6px; }
-  .batch-card-actions button{
-    padding:6px 10px; border-radius:8px; border:1.5px solid var(--border); background:var(--surface);
-    color:var(--text-mut); font-weight:700; font-size:.75rem; cursor:pointer;
-  }
-  .batch-card-actions button:hover{ background:var(--bg); }
-  .batch-card-stats{ display:flex; gap:16px; flex-wrap:wrap; font-size:.8rem; color:var(--text-mut); margin-bottom:8px; }
-  .batch-card-stats b{ color:var(--text); }
-  .edit-item-row{ display:grid; grid-template-columns:1.4fr 1fr 1fr .8fr 1fr 1fr; gap:8px; margin-bottom:8px; align-items:end; }
-  .edit-item-row .field{ margin-bottom:0; }
-  .edit-item-row label{ font-size:.66rem; }
-  .edit-item-row input{ padding:8px 9px; font-size:.8rem; }
-  @media (max-width:600px){ .edit-item-row{ grid-template-columns:1fr 1fr; } }
-
-  /* ---------- Inventory: analytics insight cards ---------- */
-  .inv-insight-grid{ display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:16px; }
-  .inv-insight-card{
-    background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-sm);
-    padding:13px 15px; min-height:96px;
-  }
-  .inv-insight-title{ font-size:.78rem; font-weight:700; color:var(--text-mut); margin-bottom:8px; }
-  .inv-insight-row{ display:flex; justify-content:space-between; align-items:center; font-size:.8rem; padding:3px 0; }
-  .inv-insight-row .ir-name{ font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:65%; }
-  .inv-insight-row .ir-meta{ color:var(--text-mut); font-size:.72rem; flex-shrink:0; }
-  .inv-insight-row .ir-meta.green{ color:var(--green-dark); font-weight:700; }
-  html.dark .inv-insight-row .ir-meta.green{ color:var(--green); }
-  .inv-insight-row .ir-meta.amber{ color:#b45309; font-weight:700; }
-  html.dark .inv-insight-row .ir-meta.amber{ color:var(--amber); }
-  .inv-insight-empty{ color:var(--text-mut); font-size:.76rem; padding:6px 0; }
-  .inv-insight-total .inv-total-row{ display:flex; justify-content:space-between; align-items:baseline; padding:6px 0; }
-  .inv-insight-total .inv-total-row span{ font-size:.78rem; color:var(--text-mut); }
-  .inv-insight-total .inv-total-row b{ font-size:1.05rem; font-weight:800; }
-  .exp-badge{ font-size:.65rem; font-weight:700; padding:2px 7px; border-radius:999px; margin-left:6px; }
-  .exp-badge.warn{ background:#fef3c7; color:#92400e; }
-  .exp-badge.bad{ background:#fee2e2; color:#991b1b; }
-  html.dark .exp-badge.warn{ background:#3a2c0c; color:#fbbf24; }
-  html.dark .exp-badge.bad{ background:#3a1414; color:#f87171; }
-
-  @media (max-width:600px){
-    .inv-insight-grid{ grid-template-columns:1fr; }
-  }
-
-  /* ---------- Inventory: search/category + decluttered collapsible list ---------- */
-  .inv-search-row{ display:flex; gap:8px; margin-bottom:12px; }
-  .inv-search-row input{
-    flex:1; padding:11px 14px; border-radius:10px; border:1.5px solid var(--border);
-    background:var(--surface); color:var(--text); font-size:.88rem;
-  }
-  .inv-search-row select{
-    padding:11px 12px; border-radius:10px; border:1.5px solid var(--border);
-    background:var(--surface); color:var(--text); font-size:.85rem; font-weight:600; max-width:170px;
-  }
-  .inv-list{ display:flex; flex-direction:column; }
-  .inv-row{ border-bottom:1px solid var(--border); }
-  .inv-row:last-child{ border-bottom:none; }
-  .inv-head{ display:flex; align-items:center; justify-content:space-between; gap:10px; padding:13px 2px; cursor:pointer; }
-  .inv-head-left{ display:flex; align-items:center; gap:10px; min-width:0; }
-  .inv-photo{
-    width:36px; height:36px; border-radius:9px; background:var(--bg); display:flex; align-items:center;
-    justify-content:center; font-size:1.15rem; flex-shrink:0; overflow:hidden;
-  }
-  .inv-photo img{ width:100%; height:100%; object-fit:cover; display:block; }
-  .inv-name-wrap{ min-width:0; }
-  .inv-name{ font-weight:700; font-size:.88rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .inv-sku-mini{ font-size:.68rem; color:var(--text-mut); }
-  .inv-head-right{ display:flex; align-items:center; gap:10px; flex-shrink:0; }
-  .inv-stock-badge{ font-weight:800; font-size:.85rem; }
-  .inv-chevron{ transition:transform .2s ease; color:var(--text-mut); font-size:.8rem; }
-  .inv-row.expanded .inv-chevron{ transform:rotate(180deg); }
-  .inv-body{ display:none; padding:0 2px 14px; }
-  .inv-row.expanded .inv-body{ display:block; animation:fadein .15s ease; }
-  .inv-body-grid{ display:grid; grid-template-columns:repeat(2,1fr); gap:8px 18px; font-size:.82rem; margin:0 0 12px 46px; }
-  .inv-body-grid .ibl{ display:block; color:var(--text-mut); font-size:.66rem; font-weight:700; text-transform:uppercase; letter-spacing:.02em; }
-  .inv-body-actions{ display:flex; gap:8px; margin-right:46px; }
-
-  @media (min-width:769px){
-    .inv-head{ cursor:default; }
-    .inv-chevron{ display:none; }
-    .inv-body{ display:block !important; }
-  }
-  @media (max-width:480px){
-    .inv-body-grid{ grid-template-columns:1fr 1fr; margin-left:0; }
-    .inv-body-actions{ margin-right:0; }
-  }
-
-  @media (max-width: 768px){
-    .form-grid{ grid-template-columns:1fr; }
-    .item-row-grid{ grid-template-columns:1fr 1fr; }
-    .receipt-meta{ grid-template-columns:1fr 1fr; }
-  }
-
-  /* ---------- View mode toggle (Settings) ---------- */
-  .view-mode-row{ display:flex; gap:10px; flex-wrap:wrap; }
-  .vm-btn{
-    padding:10px 16px; border:1.5px solid var(--border); border-radius:10px; background:var(--surface);
-    color:var(--text-mut); font-weight:700; font-size:.85rem; cursor:pointer; transition:all .15s;
-  }
-  .vm-btn.active{ background:var(--navy); border-color:var(--navy); color:#fff; }
-
-  /* Forced view-mode overrides (mapped to this app's real class names) */
-  body.force-desktop .sidebar{ transform:none !important; position:sticky !important; z-index:1 !important; box-shadow:none !important; }
-  body.force-desktop .sidebar-backdrop{ display:none !important; }
-  body.force-desktop .menu-btn{ display:none !important; }
-  body.force-desktop .bottom-nav{ display:none !important; }
-  body.force-desktop .cart-fab{ display:none !important; }
-  body.force-desktop .cart-panel{ position:sticky !important; left:auto !important; right:auto !important; bottom:auto !important; border-radius:var(--radius) !important; max-height:none !important; display:block !important; }
-  body.force-desktop .cards-grid{ grid-template-columns:repeat(4,1fr) !important; }
-  body.force-desktop .pos-wrap{ grid-template-columns:1fr 340px !important; }
-  body.force-desktop .form-grid{ grid-template-columns:1fr 1fr !important; }
-  body.force-desktop .item-row-grid{ grid-template-columns:repeat(3,1fr) !important; }
-  body.force-desktop .page{ padding:22px !important; }
-  html:has(body.force-desktop){ overflow-x:auto; }
-  body.force-desktop{ min-width:1080px; }
-  body.force-desktop #app{ min-width:1080px; }
-
-  body.force-mobile .sidebar{
-    position:fixed !important; left:0 !important; top:0 !important; height:100vh !important;
-    width:min(78vw, 260px) !important; max-width:260px !important; z-index:100 !important;
-    transform:translateX(-100%) !important; transition:transform .3s ease-in-out !important;
-    box-shadow:var(--shadow-lg) !important;
-  }
-  html[dir="rtl"] body.force-mobile .sidebar{ transform:translateX(100%) !important; }
-  body.force-mobile .sidebar.open{ transform:translateX(0) !important; }
-  body.force-mobile .menu-btn{ display:block !important; }
-  body.force-mobile .bottom-nav{ display:flex !important; }
-  body.force-mobile .page{ padding:14px 14px 90px !important; }
-  body.force-mobile .cards-grid{ grid-template-columns:1fr 1fr !important; }
-  body.force-mobile .pos-wrap{ grid-template-columns:1fr !important; }
-  body.force-mobile .form-grid{ grid-template-columns:1fr !important; }
-  body.force-mobile .item-row-grid{ grid-template-columns:1fr 1fr !important; }
-  body.force-mobile .cart-panel{ position:fixed !important; left:0 !important; right:0 !important; bottom:0 !important; z-index:35 !important; border-radius:18px 18px 0 0 !important; max-height:70vh !important; display:none !important; }
-  body.force-mobile .cart-panel.show-mobile{ display:block !important; }
-  body.force-mobile .cart-fab{ display:flex !important; }
-  body.force-mobile{ min-width:0 !important; overflow-x:hidden !important; }
-
-  /* ================= DASHBOARD V2 (dark, matches reference mock) ================= */
-  .dv2-wrap{
-    --dv2-bg:#101010; --dv2-card:#1c1c1c; --dv2-border:#2c2c2c;
-    --dv2-green:#6b8e13; --dv2-green-bright:#8fce2b;
-    --dv2-text:#f2f2f2; --dv2-mut:#9a9a9a; --dv2-amber:#f5a623; --dv2-red:#e5484d;
-    background:var(--dv2-bg); border-radius:16px; padding:14px; margin:-8px -4px 0;
-    color:var(--dv2-text); font-family:'Noto Sans Ethiopic','Inter',sans-serif;
-  }
-  .dv2-header{ display:flex; align-items:center; justify-content:space-between; padding:6px 4px 16px; }
-  .dv2-header-left{ display:flex; align-items:center; gap:10px; }
-  .dv2-menu-btn{ background:none; border:none; color:var(--dv2-text); font-size:1.3rem; cursor:pointer; padding:2px; }
-  .dv2-branch{ display:flex; align-items:center; gap:6px; cursor:pointer; }
-  .dv2-branch span:first-child{ font-weight:800; font-size:1.15rem; }
-  .dv2-caret{ color:var(--dv2-mut); font-size:.8rem; }
-  .dv2-avatar{
-    width:36px; height:36px; border-radius:50%; background:#2a2a2a; border:2px solid var(--dv2-green-bright);
-    display:flex; align-items:center; justify-content:center; font-size:1rem; cursor:pointer; flex-shrink:0;
-  }
-
-  .dv2-capital-card{
-    background:linear-gradient(135deg, var(--dv2-green), #4f6b0d);
-    border-radius:14px; padding:16px 18px; display:flex; align-items:center; justify-content:space-between;
-    margin-bottom:14px; box-shadow:0 6px 18px rgba(107,142,19,.25);
-  }
-  .dv2-capital-lab{ font-size:.78rem; font-weight:700; color:rgba(255,255,255,.85); margin-bottom:4px; }
-  .dv2-capital-val{ font-size:1.5rem; font-weight:800; color:#fff; }
-  .dv2-edit-btn{
-    width:38px; height:38px; border-radius:50%; background:rgba(255,255,255,.18); border:none;
-    display:flex; align-items:center; justify-content:center; font-size:1rem; cursor:pointer; color:#fff; flex-shrink:0;
-  }
-
-  .dv2-grid2{ display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px; }
-  .dv2-card{ background:var(--dv2-card); border:1px solid var(--dv2-border); border-radius:14px; padding:14px 16px; }
-  .dv2-card-lab{ font-size:.74rem; color:var(--dv2-mut); font-weight:600; margin-bottom:6px; }
-  .dv2-card-val{ font-size:1.6rem; font-weight:800; color:var(--dv2-text); line-height:1.1; }
-  .dv2-card-val.dv2-green{ color:var(--dv2-green-bright); }
-  .dv2-card-sub{ font-size:.68rem; color:var(--dv2-mut); margin-top:6px; }
-  .dv2-card-head{ display:flex; align-items:center; gap:8px; font-size:.82rem; font-weight:700; color:var(--dv2-text); }
-  .dv2-dot{ width:10px; height:10px; border-radius:50%; flex-shrink:0; }
-  .dv2-dot.amber{ background:var(--dv2-amber); }
-  .dv2-dot.red{ background:var(--dv2-red); }
-  .dv2-low-list{ margin-top:10px; display:flex; flex-direction:column; gap:6px; }
-  .dv2-low-row{ display:flex; justify-content:space-between; font-size:.78rem; color:var(--dv2-text); }
-  .dv2-low-row b{ font-weight:800; }
-  .dv2-low-row.dv2-out b{ color:var(--dv2-red); }
-  .dv2-low-row.dv2-low b{ color:var(--dv2-amber); }
-  .dv2-empty-mut{ color:var(--dv2-mut); font-size:.78rem; margin-top:8px; }
-
-  .dv2-chart-lab{ font-size:.82rem; font-weight:700; color:var(--dv2-mut); margin:6px 4px 10px; display:flex; align-items:center; gap:6px; }
-  .dv2-chart-card{ background:var(--dv2-card); border:1px solid var(--dv2-border); border-radius:14px; padding:14px 10px 6px; }
-
-  @media (max-width:480px){
-    .dv2-grid2{ grid-template-columns:1fr 1fr; gap:9px; }
-    .dv2-card{ padding:11px 12px; }
-    .dv2-card-val{ font-size:1.3rem; }
-    .dv2-capital-val{ font-size:1.25rem; }
-  }
-
-  /* ---------- Print / PDF receipt ---------- */
-  #printReceipt{ display:none; }
-  @media print{
-    body *{ visibility:hidden; }
-    #printReceipt, #printReceipt *{ visibility:visible; }
-    #printReceipt{ display:block; position:absolute; top:0; left:0; width:100%; padding:24px; color:#000; }
-    #printReceipt .pr-head{ text-align:center; margin-bottom:18px; }
-    #printReceipt .pr-head h2{ margin:0 0 4px; color:#1E3A8A; }
-    #printReceipt table{ width:100%; border-collapse:collapse; font-size:12px; }
-    #printReceipt th, #printReceipt td{ border:1px solid #ccc; padding:6px 8px; text-align:right; }
-    #printReceipt th{ background:#f1f5f9; }
-  }
-
-
-  /* Modal */
-  .modal-overlay{
-    position:fixed; inset:0; background:rgba(10,15,30,.55); display:none; align-items:center; justify-content:center; z-index:100; padding:16px;
-  }
-  .modal-overlay.show{ display:flex; }
-  .modal{ background:var(--surface); border-radius:16px; width:100%; max-width:420px; padding:22px; box-shadow:var(--shadow-lg); max-height:88vh; overflow:auto; }
-  .modal h3{ margin:0 0 16px; }
-  .modal-actions{ display:flex; gap:10px; margin-top:6px; }
-
-  /* Toast */
-  #toast{
-    position:fixed; bottom:22px; left:50%; transform:translateX(-50%) translateY(20px); opacity:0;
-    background:var(--text); color:var(--bg); padding:12px 20px; border-radius:10px; font-weight:700; font-size:.85rem;
-    z-index:200; transition:all .25s ease; box-shadow:var(--shadow-lg); pointer-events:none;
-  }
-  #toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
-
-  /* Settings */
-  .setting-row{ display:flex; align-items:center; justify-content:space-between; padding:14px 0; border-bottom:1px solid var(--border); }
-  .setting-row:last-child{ border-bottom:none; }
-  .setting-row .lab{ font-weight:700; font-size:.9rem; }
-  .setting-row .desc{ font-size:.78rem; color:var(--text-mut); margin-top:2px; }
-  .switch{ position:relative; width:46px; height:26px; background:var(--border); border-radius:999px; cursor:pointer; flex-shrink:0; }
-  .switch.on{ background:var(--green); }
-  .switch .dot{ position:absolute; top:3px; right:3px; width:20px; height:20px; background:#fff; border-radius:50%; transition:transform .18s; }
-  .switch.on .dot{ transform:translateX(-20px); }
-  .swatches{ display:flex; gap:8px; }
-  .swatch{ width:28px; height:28px; border-radius:50%; cursor:pointer; border:3px solid transparent; }
-  .swatch.selected{ border-color:var(--text); }
-  .seg{ display:flex; gap:6px; }
-  .seg button{ padding:6px 12px; border-radius:8px; border:1.5px solid var(--border); background:var(--surface); color:var(--text); cursor:pointer; font-weight:700; font-size:.78rem; }
-  .seg button.active{ background:var(--navy); border-color:var(--navy); color:#fff; }
-
-  /* Bottom nav (mobile) */
-  .bottom-nav{ display:none; }
-
-  /* Responsive */
-  @media (max-width: 980px){
-    .cards-grid{ grid-template-columns:repeat(2,1fr); }
-    .pos-wrap{ grid-template-columns:1fr; }
-    .cart-panel{ position:static; }
-  }
-  @media (max-width: 768px){
-    .sidebar{
-      position:fixed; left:0; top:0; height:100vh; z-index:100; transform:translateX(-100%);
-      transition:transform .3s ease-in-out; box-shadow:var(--shadow-lg); width:min(78vw, 260px); max-width:260px;
-    }
-    html[dir="rtl"] .sidebar{ transform:translateX(100%); }
-    .sidebar.open{ transform:translateX(0); }
-    .menu-btn{ display:block; }
-    .cards-grid{ grid-template-columns:1fr 1fr; }
-    .page{ padding:14px 14px 90px; }
-    .topbar{ padding:12px 14px; }
-    .bottom-nav{
-      display:flex; position:fixed; bottom:0; left:0; right:0; background:var(--surface);
-      border-top:1px solid var(--border); z-index:40; padding:6px 4px calc(6px + env(safe-area-inset-bottom)); justify-content:space-around;
-      box-shadow:0 -6px 20px rgba(15,23,42,.06);
-    }
-    .bottom-nav .bn-item{
-      display:flex; flex-direction:column; align-items:center; gap:2px; font-size:.62rem; font-weight:700;
-      color:var(--text-mut); cursor:pointer; padding:6px 8px; border-radius:10px; flex:1;
-    }
-    .bottom-nav .bn-item .ico{ font-size:1.15rem; }
-    .bottom-nav .bn-item.active{ color:var(--green-dark); }
-    html.dark .bottom-nav .bn-item.active{ color:var(--green); }
-    .sidebar-backdrop{ display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:45; }
-    .sidebar-backdrop.show{ display:block; }
-    .cart-panel{ position:fixed; left:0; right:0; bottom:0; z-index:35; border-radius:18px 18px 0 0; max-height:70vh; display:none; }
-    .cart-panel.show-mobile{ display:block; }
-    .cart-fab{
-      display:flex; position:fixed; bottom:calc(80px + env(safe-area-inset-bottom)); left:16px; z-index:36; background:var(--green); color:#fff;
-      border-radius:999px; padding:12px 18px; font-weight:800; box-shadow:var(--shadow-lg); align-items:center; gap:8px; border:none; cursor:pointer;
-    }
-  }
-  @media (min-width: 769px){ .cart-fab{ display:none; } }
-
-  @media (prefers-reduced-motion: reduce){
-    *{ animation-duration:.001ms !important; animation-iteration-count:1 !important; transition-duration:.001ms !important; }
-  }
-
-  a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, .nav-item:focus-visible, .bn-item:focus-visible{
-    outline:2px solid var(--green); outline-offset:2px;
-  }
-</style>
-</head>
-<body>
-
-<div id="splash">
-  <div class="splash-mark"><img src="icons/logo-256.png" alt="Gurage POS"></div>
-  <div class="splash-name">Gurage POS</div>
-  <div class="splash-dot"></div>
-</div>
-
-<div id="toast"></div>
-
-<!-- ================= AUTH ================= -->
-<div id="authScreen">
-  <div class="auth-card">
-    <div class="auth-logo"><img src="icons/logo-256.png" alt="Gurage POS"></div>
-    <h1>Gurage POS</h1>
-    <p class="sub">የንግድ ስራዎን በቀላሉ ያስተዳድሩ</p>
-
-    <div id="authStep1">
-      <div class="field">
-        <label>የስልክ ቁጥር</label>
-        <input type="tel" id="phoneInput" placeholder="09xxxxxxxx" value="0911223344">
-      </div>
-      <button class="btn btn-primary" onclick="sendOtp()">OTP ላክ</button>
-      <div class="auth-trial">🎁 አዲስ ተጠቃሚ ከሆኑ የ30 ቀን ነጻ ሙከራ ያገኛሉ</div>
-
-      <div style="text-align:center;margin-top:14px;">
-        <a onclick="toggleEmailSignup()" style="font-size:.8rem;color:var(--text-mut);cursor:pointer;font-weight:600;" id="emailToggleLink">+ የኢሜይል/የይለፍ ቃል ምዝገባ (አማራጭ) ▾</a>
-      </div>
-      <div id="emailSignupBox" style="display:none;margin-top:12px;">
-        <div class="field"><label>ኢሜይል (አማራጭ)</label><input type="email" id="emailInput" placeholder="you@example.com"></div>
-        <div class="field"><label>የይለፍ ቃል (አማራጭ)</label><input type="password" id="passwordInput" placeholder="••••••••"></div>
-        <p style="font-size:.72rem;color:var(--text-mut);margin-top:-6px;">ስልክ+OTP ዋነኛው መግቢያ ነው፤ ይህ ለወደፊት መልሶ ማግኛ (recovery) ብቻ ተጨማሪ ይሆናል።</p>
-      </div>
-    </div>
-
-    <div id="authStep2" style="display:none;">
-      <p class="sub" style="margin-bottom:14px;">ወደ <b id="otpPhoneShow"></b> የተላከውን 4 አሃዝ ኮድ ያስገቡ (ሙከራ ኮድ፡ 1234)</p>
-      <div class="otp-row">
-        <input maxlength="1" class="otp-box" oninput="otpNext(this)">
-        <input maxlength="1" class="otp-box" oninput="otpNext(this)">
-        <input maxlength="1" class="otp-box" oninput="otpNext(this)">
-        <input maxlength="1" class="otp-box" oninput="otpNext(this)">
-      </div>
-      <div style="height:14px;"></div>
-      <button class="btn btn-primary" onclick="verifyOtp()">አረጋግጥና ግባ</button>
-      <p style="font-size:.68rem;color:var(--text-mut);text-align:center;margin-top:10px;">📡 OTP እዚህ demo ውስጥ የተመሰለ (simulated) ነው — እውነተኛ SMS ለመላክ የSMS Gateway ጋር ማገናኘት ያስፈልጋል።</p>
-    </div>
-
-    <div class="auth-switch">የቢዝነስ ስም አልገባህም? <a onclick="toast('የምዝገባ ፎርም (ስም/PIN) እዚህ ይታያል')">አዲስ ይመዝገቡ</a></div>
-  </div>
-</div>
-
-<!-- ================= APP ================= -->
-<div id="app">
-  <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="closeSidebar()"></div>
-  <aside class="sidebar" id="sidebar">
-    <div class="sidebar-brand">
-      <div class="mark"><img src="icons/logo-96.png" alt="Gurage POS"></div>
-      <div class="name">Gurage POS <small>አነስተኛና መካከለኛ ነጋዴ</small></div>
-    </div>
-    <nav id="navList">
-      <div class="nav-item active" data-page="dashboard"><span class="ico">🏠</span> ዋና ገጽ</div>
-      <div class="nav-item" data-page="pos"><span class="ico">🛒</span> ሽያጭ (POS)</div>
-      <div class="nav-item" data-page="inventory"><span class="ico">📦</span> መጋዘን</div>
-      <div class="nav-item" data-page="receive"><span class="ico">🚚</span> እቃ ገቢ (Batch)</div>
-      <div class="nav-item" data-page="batchhistory"><span class="ico">🗂️</span> የጭነት ታሪክ</div>
-      <div class="nav-item" data-page="employees"><span class="ico">👥</span> ሰራተኞች</div>
-      <div class="nav-item" data-page="finance"><span class="ico">💳</span> ገቢ/ወጪ/ዕዳ</div>
-      <div class="nav-item" data-page="reports"><span class="ico">📊</span> ሪፖርት</div>
-      <div class="nav-item" data-page="pricing"><span class="ico">💎</span> የክፍያ ፓኬጆች</div>
-    </nav>
-    <div class="sidebar-foot">
-      <div class="nav-item" data-page="admin"><span class="ico">🛡️</span> አድሚን (ማሳያ)</div>
-      <div class="nav-item" data-page="settings"><span class="ico">⚙️</span> ቅንብሮች</div>
-      <div class="nav-item" onclick="logout()"><span class="ico">🚪</span> ውጣ</div>
-    </div>
-  </aside>
-
-  <div class="main">
-    <div id="offlineBar">⚠️ ኢንተርኔት የለም፤ መረጃው በስልኩ ላይ እየተጠበቀ ነው (Offline Mode)</div>
-    <div id="trialBanner"></div>
-    <div class="topbar">
-      <div style="display:flex;align-items:center;gap:10px;">
-        <button class="menu-btn" onclick="openSidebar()">☰</button>
-        <div class="branch-select">
-          🏢
-          <select id="branchSelect" onchange="onBranchChange()">
-            <option value="addis">አዲስ አበባ ቅርንጫፍ</option>
-            <option value="adama">አዳማ ቅርንጫፍ</option>
-          </select>
-        </div>
-      </div>
-      <div class="topbar-right">
-        <div class="bell" onclick="toast('3 አዳዲስ ማስታወቂያዎች አሉ')">🔔<span class="badge">3</span></div>
-        <div class="avatar" onclick="setPage('settings')" title="Profile">ባ</div>
-      </div>
-    </div>
-
-    <!-- ---- DASHBOARD ---- -->
-    <section class="page active" id="page-dashboard">
-      <div class="dv2-wrap">
-        <div class="dv2-header">
-          <div class="dv2-header-left">
-            <button class="dv2-menu-btn" onclick="openSidebar()">☰</button>
-            <div class="dv2-branch" onclick="document.getElementById('branchSelect').focus()">
-              <span id="dv2BranchName">አዲስ አበባ ቅርንጫፍ</span><span class="dv2-caret">▾</span>
-            </div>
-          </div>
-          <div class="dv2-avatar" onclick="setPage('settings')" title="መገለጫ">👤</div>
-        </div>
-
-        <div class="dv2-capital-card">
-          <div>
-            <div class="dv2-capital-lab">ጠቅላላ ካፒታል</div>
-            <div class="dv2-capital-val" id="dv2Capital">0 ብር</div>
-          </div>
-          <button class="dv2-edit-btn" onclick="openCapitalModal()" title="ካፒታል አርም">✏️</button>
-        </div>
-
-        <div class="dv2-grid2">
-          <div class="dv2-card">
-            <div class="dv2-card-lab">የዛሬ ጠቅላላ ሽያጭ</div>
-            <div class="dv2-card-val dv2-green" id="dv2Sales">0</div>
-            <div class="dv2-card-sub" id="dv2SalesSub">—</div>
-          </div>
-          <div class="dv2-card">
-            <div class="dv2-card-lab">የዛሬ ጠቅላላ ትርፍ</div>
-            <div class="dv2-card-val" id="dv2Profit">0</div>
-            <div class="dv2-card-sub" id="dv2ProfitSub">—</div>
-          </div>
-        </div>
-
-        <div class="dv2-grid2">
-          <div class="dv2-card">
-            <div class="dv2-card-head"><span class="dv2-dot amber"></span> ያለቁ/ያነሱ እቃዎች</div>
-            <div class="dv2-low-list" id="dv2LowList"></div>
-          </div>
-          <div class="dv2-card">
-            <div class="dv2-card-head"><span class="dv2-dot red"></span> አጠቃላይ ያልተሰበሰበ ዕዳ/ብድር</div>
-            <div class="dv2-card-val" id="dv2Debt" style="margin-top:12px;">0 ብር</div>
-          </div>
-        </div>
-
-        <div class="dv2-card" style="margin-bottom:14px;">
-          <div class="dv2-card-head">🆕 ዛሬ የገባ አዲስ እቃ</div>
-          <div id="dv2NewItems" class="dv2-empty-mut">ዛሬ ምንም አዲስ እቃ አልገባም</div>
-        </div>
-
-        <div class="dv2-chart-lab">📊 መሉ የድርጅቱ እንቅስቃሴ</div>
-        <div class="dv2-chart-card">
-          <canvas id="dv2Chart" height="150"></canvas>
-        </div>
-      </div>
-    </section>
-
-    <!-- ---- POS ---- -->
-    <section class="page" id="page-pos">
-      <h1 class="page-title">የሽያጭ መስሪያ ገጽ</h1>
-      <p class="page-sub">ዕቃ ይምረጡ እና ሽያጭ ያጠናቅቁ</p>
-
-      <div class="pos-wrap">
-        <div>
-          <div class="pos-search">
-            <input type="text" id="posSearch" placeholder="🔍 በስም ይፈልጉ..." oninput="renderProductGrid()">
-            <button onclick="toast('📷 ካሜራ በመክፈት ባርኮድ ይስካኑ')">📷</button>
-          </div>
-          <div class="filter-tabs" id="categoryTabs"></div>
-          <div class="product-grid" id="productGrid"></div>
-        </div>
-
-        <div class="cart-panel" id="cartPanel">
-          <h3>🛒 ቅርጫት</h3>
-          <div class="cart-items" id="cartItems"><div class="cart-empty">ቅርጫት ባዶ ነው</div></div>
-          <div class="cart-total-row"><span>ጠቅላላ ድምር</span><span id="cartTotal">0 ብር</span></div>
-          <div class="paymethods" id="payMethods">
-            <button data-m="ጥሬ ገንዘብ" class="active">💵 ጥሬ ገንዘብ</button>
-            <button data-m="ቴሌብር">📱 ቴሌብር</button>
-            <button data-m="ባንክ">🏦 ባንክ</button>
-            <button data-m="ብድር">🧾 ብድር</button>
-          </div>
-          <button class="btn btn-primary" onclick="completeSale()">✅ ሽያጭ አጠናቅቅ</button>
-        </div>
-      </div>
-      <button class="cart-fab" onclick="toggleMobileCart()">🛒 ቅርጫት (<span id="cartCountFab">0</span>)</button>
-    </section>
-
-    <!-- ---- INVENTORY ---- -->
-    <section class="page" id="page-inventory">
-      <h1 class="page-title">የዕቃ እና መጋዘን አስተዳደር</h1>
-      <p class="page-sub">ስቶክ ይከታተሉ እና ያስተካክሉ</p>
-
-      <div class="inv-insight-grid">
-        <div class="inv-insight-card">
-          <div class="inv-insight-title">🔥 ከፍተኛ ሽያጭ ያላቸው ዕቃዎች</div>
-          <div id="insightTopSelling"></div>
-        </div>
-        <div class="inv-insight-card">
-          <div class="inv-insight-title">🆕 አዲስ የገቡ ዕቃዎች</div>
-          <div id="insightRecentlyAdded"></div>
-        </div>
-        <div class="inv-insight-card">
-          <div class="inv-insight-title">🐢 የቆዩ/የማይንቀሳቀሱ ዕቃዎች</div>
-          <div id="insightSlowMoving"></div>
-        </div>
-        <div class="inv-insight-card inv-insight-total">
-          <div class="inv-insight-title">📦 አጠቃላይ ክምችት</div>
-          <div class="inv-total-row"><span>ጠቅላላ የዕቃ ዓይነት</span><b id="insightTotalCount">0</b></div>
-          <div class="inv-total-row"><span>ጠቅላላ የመጋዘን ካፒታል</span><b id="insightTotalValue">0 ብር</b></div>
-        </div>
-      </div>
-
-      <div class="inv-search-row">
-        <input type="text" id="invSearch" placeholder="🔍 በስም ወይም በኮድ (SKU) ይፈልጉ..." oninput="renderInventory()">
-        <select id="invCategorySelect" onchange="renderInventory()">
-          <option value="ሁሉም">ሁሉም ምድቦች</option>
-        </select>
-      </div>
-
-      <div class="toolbar">
-        <div class="filter-tabs" id="invTabs">
-          <button class="active" data-f="all" onclick="setInvFilter('all',this)">ሁሉም ዕቃዎች</button>
-          <button data-f="low" onclick="setInvFilter('low',this)">ያለቁ/ያነሱ</button>
-          <button data-f="expiring" onclick="setInvFilter('expiring',this)">ጊዜው የሚያልቅ/ያለፈ</button>
-        </div>
-      </div>
-      <div class="panel" style="padding:6px 14px;">
-        <div class="inv-list" id="inventoryList"></div>
-      </div>
-    </section>
-
-    <!-- ---- NEW BATCH / STOCK REGISTRATION (Receive) ---- -->
-    <section class="page" id="page-receive">
-      <h1 class="page-title">🚚 አዲስ ጭነት / ዕቃ ገቢ መመዝገቢያ</h1>
-      <p class="page-sub">የመኪና ጭነት መረጃ ያስገቡ፣ ሲስተሙ የቆመበትን ትክክለኛ ዋጋ በራስ-ሰር ያሰላል</p>
-
-      <div class="wizard-steps" id="wizardSteps">
-        <div class="wz-step active" data-s="1"><span class="wz-num">1</span><span class="wz-lab">ጭነት መረጃ</span></div>
-        <div class="wz-line"></div>
-        <div class="wz-step" data-s="2"><span class="wz-num">2</span><span class="wz-lab">የዕቃ ዝርዝር</span></div>
-        <div class="wz-line"></div>
-        <div class="wz-step" data-s="3"><span class="wz-num">3</span><span class="wz-lab">ማጠቃለያ</span></div>
-      </div>
-
-      <!-- STEP 1 -->
-      <div class="wz-panel active" id="wz-1">
-        <div class="panel">
-          <div class="panel-head"><h3>1️⃣ አጠቃላይ የጭነት መረጃ</h3></div>
-          <div class="form-grid">
-            <div class="field"><label>የመኪናው ታርጋ</label><input type="text" id="rbPlate" placeholder="ለምሳሌ፦ AA 2-B12345"></div>
-            <div class="field"><label>አሽከርካሪ/አራጋፊ ስም</label><input type="text" id="rbDriver" placeholder="ለምሳሌ፦ አበበ ከበደ"></div>
-            <div class="field"><label>የትራንስፖርት ወጪ (ብር)</label><input type="number" id="rbTransportCost" placeholder="10000" oninput="updateTotalExpense()"></div>
-            <div class="field"><label>የጫኝና አውራጅ ወጪ (ብር)</label><input type="number" id="rbLoadingCost" placeholder="500" oninput="updateTotalExpense()"></div>
-            <div class="field"><label>የመጡ የተለዩ እቃዎች ዓይነት ብዛት</label><input type="number" id="rbItemTypeCount" placeholder="5" min="1" max="30"></div>
-            <div class="field">
-              <label>አጠቃላይ የጭነት ወጪ</label>
-              <div class="readonly-box" id="rbTotalExpenseShow">0 ብር</div>
-            </div>
-          </div>
-          <div class="modal-actions" style="justify-content:flex-end">
-            <button class="btn btn-primary" style="width:auto" onclick="goToStep2()">ቀጣይ → የዕቃ ዝርዝር</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- STEP 2 -->
-      <div class="wz-panel" id="wz-2">
-        <div class="panel">
-          <div class="panel-head">
-            <h3>2️⃣ የእያንዳንዱ ዕቃ ዝርዝር</h3>
-            <span style="font-size:.8rem;color:var(--text-mut)">ከStep 1 የገባው ብዛት፦ <b id="itemCountLabel">0</b> ዕቃ</span>
-          </div>
-          <div id="itemRowsContainer"></div>
-          <div class="modal-actions" style="justify-content:space-between">
-            <button class="btn btn-ghost" style="width:auto" onclick="goToStep(1)">← ተመለስ</button>
-            <button class="btn btn-primary" style="width:auto" onclick="computeAndGoToStep3()">ቀጣይ → ማስላት እና ማጠቃለያ</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- STEP 3 -->
-      <div class="wz-panel" id="wz-3">
-        <div class="panel" id="receiptCard">
-          <div class="panel-head">
-            <h3>🧾 የእቃ ገቢ መመዝገቢያ ደረሰኝ</h3>
-            <span style="font-size:.78rem;color:var(--text-mut)" id="rbTimestamp"></span>
-          </div>
-
-          <div class="receipt-meta">
-            <div><span class="rm-lab">የመኪና ታርጋ</span><span class="rm-val" id="sumPlate">—</span></div>
-            <div><span class="rm-lab">አራጋፊ</span><span class="rm-val" id="sumDriver">—</span></div>
-            <div><span class="rm-lab">አጠቃላይ ጭነት ወጪ</span><span class="rm-val" id="sumTotalExpense">—</span></div>
-            <div><span class="rm-lab">አጠቃላይ የዕቃ ብዛት</span><span class="rm-val" id="sumTotalQty">—</span></div>
-            <div><span class="rm-lab">በፍሬ ላይ የተደመረ ወጪ</span><span class="rm-val" id="sumPerUnitExpense" style="color:var(--amber)">—</span></div>
-          </div>
-
-          <div class="table-container">
-            <table>
-              <thead><tr>
-                <th>ዕቃ</th><th>ኮድ</th><th>ከማን</th><th>ብዛት</th><th>ግዢ ዋጋ</th><th>+ ወጪ/ፍሬ</th><th>የቆመበት ዋጋ</th><th>ሽያጭ ዋጋ</th><th>የትርፍ መጠን</th>
-              </tr></thead>
-              <tbody id="summaryBody"></tbody>
-            </table>
-          </div>
-
-          <div class="cart-total-row"><span>የሚጠበቅ ጠቅላላ ትርፍ</span><span id="sumTotalProfit" style="color:var(--green-dark)">0 ብር</span></div>
-
-          <div class="modal-actions" style="flex-wrap:wrap">
-            <button class="btn btn-ghost" style="width:auto" onclick="goToStep(2)">← ተመለስ</button>
-            <button class="btn btn-navy" style="width:auto" onclick="saveBatchRecord()">💾 መዝገብ አስቀምጥ (Save)</button>
-            <button class="btn btn-ghost" style="width:auto" onclick="printBatchReceipt()">🖨️ አትም / Export PDF</button>
-            <button class="btn btn-primary" style="width:auto" onclick="shareBatchReceipt()">📤 አጋራ (Share)</button>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ---- BATCH HISTORY (Batch Receipts log) ---- -->
-    <section class="page" id="page-batchhistory">
-      <h1 class="page-title">🗂️ የጭነት ታሪክ (Batch History)</h1>
-      <p class="page-sub">ከዚህ ቀደም የተመዘገቡ ጭነቶች — ታሪኩ ለብቻው ተቀምጦ ይኖራል፣ ማረም/ማጽዳት ይቻላል</p>
-      <div id="batchHistoryList"></div>
-    </section>
-
-    <!-- ---- EMPLOYEES ---- -->
-    <section class="page" id="page-employees">
-      <h1 class="page-title">ሰራተኞች</h1>
-      <p class="page-sub">የሰራተኛ መዝገብ እና ደሞዝ ክፍያ</p>
-      <div class="toolbar">
-        <div></div>
-        <button class="btn btn-navy" style="width:auto" onclick="openEmployeeModal()">➕ ሰራተኛ ጨምር</button>
-      </div>
-      <div class="panel">
-        <table>
-          <thead><tr><th>ስም</th><th>ስልክ</th><th>ደረጃ</th><th>ወርሃዊ ደሞዝ</th><th>ዛሬ የሸጠው</th></tr></thead>
-          <tbody id="employeesBody"></tbody>
-        </table>
-      </div>
-    </section>
-
-    <!-- ---- FINANCE ---- -->
-    <section class="page" id="page-finance">
-      <h1 class="page-title">ገቢ፣ ወጪ እና ዕዳ</h1>
-      <p class="page-sub">የገንዘብ ፍሰትዎን ይቆጣጠሩ</p>
-      <div class="cards-grid" style="grid-template-columns:repeat(3,1fr)">
-        <div class="kpi-card green"><div class="lab">ጠቅላላ ገቢ (ወር)</div><div class="val" id="finIncome">0 ብር</div></div>
-        <div class="kpi-card red"><div class="lab">ጠቅላላ ወጪ (ወር)</div><div class="val" id="finExpense">0 ብር</div></div>
-        <div class="kpi-card navy"><div class="lab">ተጣራ ትርፍ</div><div class="val" id="finNet">0 ብር</div></div>
-      </div>
-      <div class="panel">
-        <div class="panel-head"><h3>💳 የብድር/ዕዳ መዝገብ (Accounts Receivable)</h3></div>
-        <table>
-          <thead><tr><th>ደንበኛ</th><th>መጠን</th><th>ቀን</th><th>ሁኔታ</th></tr></thead>
-          <tbody id="debtBody"></tbody>
-        </table>
-      </div>
-      <div class="panel">
-        <div class="panel-head"><h3>🧾 ወጪዎች</h3><button class="btn btn-ghost btn-sm" onclick="openExpenseModal()">➕ ወጪ ጨምር</button></div>
-        <table>
-          <thead><tr><th>ዓይነት</th><th>መጠን</th><th>ቀን</th><th>የክፍያ ዘዴ</th></tr></thead>
-          <tbody id="expenseBody"></tbody>
-        </table>
-      </div>
-    </section>
-
-    <!-- ---- REPORTS ---- -->
-    <section class="page" id="page-reports">
-      <h1 class="page-title">ሪፖርት እና ማጠቃለያ</h1>
-      <p class="page-sub">አፈጻጸምዎን ይተንትኑ እና ያጋሩ</p>
-      <div class="toolbar">
-        <div class="seg">
-          <button class="active">ሳምንት</button>
-          <button>ወር</button>
-        </div>
-        <div style="display:flex;gap:8px;">
-          <button class="btn btn-ghost btn-sm" onclick="exportCsv()">⬇️ Excel</button>
-          <button class="btn btn-ghost btn-sm" onclick="toast('📄 PDF ተፈጥሮ ወደ Telegram/WhatsApp ተልኳል (ናሙና)')">📤 አጋራ</button>
-        </div>
-      </div>
-      <div class="panel"><canvas id="reportChart" height="90"></canvas></div>
-      <div class="panel">
-        <div class="panel-head"><h3>ሁሉም ሽያጮች</h3></div>
-        <table>
-          <thead><tr><th>ደረሰኝ</th><th>ቀን/ሰዓት</th><th>ቅርንጫፍ</th><th>ዘዴ</th><th>ድምር</th></tr></thead>
-          <tbody id="allSalesBody"></tbody>
-        </table>
-      </div>
-    </section>
-
-    <!-- ---- PRICING ---- -->
-    <section class="page" id="page-pricing">
-      <h1 class="page-title">የክፍያ ፓኬጆች</h1>
-      <p class="page-sub">የደንበኝነት ምዝገባዎን ያስተዳድሩ</p>
-      <div class="cards-grid" style="grid-template-columns:repeat(3,1fr)">
-        <div class="panel" style="text-align:center">
-          <h3>መሰረታዊ</h3><div style="font-size:1.6rem;font-weight:800;margin:8px 0;">300 ብር<span style="font-size:.8rem;color:var(--text-mut)">/ወር</span></div>
-          <p style="color:var(--text-mut);font-size:.85rem;">1 ሱቅ + እስከ 2 ሰራተኛ</p>
-          <button class="btn btn-ghost" onclick="simulatePaymentConfirm()">ይምረጡ</button>
-        </div>
-        <div class="panel" style="text-align:center;border:2px solid var(--green);position:relative;">
-          <div style="position:absolute;top:-11px;left:50%;transform:translateX(-50%);background:var(--green);color:#fff;font-size:.68rem;font-weight:800;padding:2px 10px;border-radius:999px;">ተመራጭ</div>
-          <h3>መካከለኛ</h3><div style="font-size:1.6rem;font-weight:800;margin:8px 0;">600 ብር<span style="font-size:.8rem;color:var(--text-mut)">/ወር</span></div>
-          <p style="color:var(--text-mut);font-size:.85rem;">2 ሱቅ + እስከ 6 ሰራተኛ</p>
-          <button class="btn btn-primary" onclick="simulatePaymentConfirm()">ይምረጡ</button>
-        </div>
-        <div class="panel" style="text-align:center">
-          <h3>ከፍተኛ</h3><div style="font-size:1.6rem;font-weight:800;margin:8px 0;">1,200 ብር<span style="font-size:.8rem;color:var(--text-mut)">/ወር</span></div>
-          <p style="color:var(--text-mut);font-size:.85rem;">ያልተገደበ ሱቅ + ሰራተኛ</p>
-          <button class="btn btn-ghost" onclick="simulatePaymentConfirm()">ይምረጡ</button>
-        </div>
-      </div>
-      <div class="panel">
-        <div class="panel-head"><h3>ማኑዋል ክፍያ ማረጋገጫ</h3></div>
-        <div class="field"><label>የደረሰኝ ቁጥር (Transaction Reference)</label><input type="text" placeholder="FT2507XXXXX"></div>
-        <button class="btn btn-navy" onclick="simulatePaymentConfirm()">ላክ</button>
-      </div>
-    </section>
-
-    <!-- ---- SETTINGS ---- -->
-    <section class="page" id="page-settings">
-      <h1 class="page-title">ቅንብሮች</h1>
-      <p class="page-sub">የመተግበሪያውን ገጽታ ያስተካክሉ</p>
-      <div class="panel">
-        <div class="panel-head"><h3>📐 የእይታ ሁኔታ (View Mode)</h3></div>
-        <p style="color:var(--text-mut);font-size:.82rem;margin-top:-6px;">በስልክ ላይ ሆነው የላፕቶፕ እይታ ማየት ወይም በተቃራኒው ማስገደድ ይችላሉ።</p>
-        <div class="view-mode-row">
-          <button class="vm-btn" id="mobileViewBtn" onclick="setViewMode('mobile')">📱 ስልክ (Mobile)</button>
-          <button class="vm-btn" id="desktopViewBtn" onclick="setViewMode('desktop')">💻 ላፕቶፕ (Desktop)</button>
-          <button class="vm-btn active" id="autoViewBtn" onclick="setViewMode('auto')">⚙️ አውቶማቲክ (Auto)</button>
-        </div>
-      </div>
-      <div class="panel">
-        <div class="setting-row">
-          <div><div class="lab">🌙 የገጽታ ሁነታ (Dark Mode)</div><div class="desc">ማታ ላይ ለዓይን ምቹ ያደርጋል</div></div>
-          <div class="switch" id="darkSwitch" onclick="toggleDark()"><div class="dot"></div></div>
-        </div>
-        <div class="setting-row">
-          <div><div class="lab">🔤 የፅሁፍ መጠን</div><div class="desc">የገጹን የፅሁፍ ትልቅነት ይምረጡ</div></div>
-          <div class="seg" id="fontSeg">
-            <button data-s="14px" onclick="setFontSize('14px',this)">ትንሽ</button>
-            <button data-s="16px" class="active" onclick="setFontSize('16px',this)">መካከለኛ</button>
-            <button data-s="18px" onclick="setFontSize('18px',this)">ትልቅ</button>
-          </div>
-        </div>
-        <div class="setting-row">
-          <div><div class="lab">🎨 ዋና ቀለም</div><div class="desc">ለንግድዎ የሚስማማ ቀለም</div></div>
-          <div class="swatches" id="themeSwatches">
-            <div class="swatch selected" style="background:#1E3A8A" data-c="#1E3A8A"></div>
-            <div class="swatch" style="background:#10B981" data-c="#10B981"></div>
-            <div class="swatch" style="background:#7C3AED" data-c="#7C3AED"></div>
-            <div class="swatch" style="background:#0EA5E9" data-c="#0EA5E9"></div>
-          </div>
-        </div>
-        <div class="setting-row">
-          <div><div class="lab">🔒 ደህንነት</div><div class="desc">PIN / Password / Fingerprint</div></div>
-          <button class="btn btn-ghost btn-sm" onclick="toast('የPIN ማስተካከያ ገጽ ይከፈታል')">ቀይር</button>
-        </div>
-        <div class="setting-row">
-          <div><div class="lab">☁️ አውቶማቲክ Backup</div><div class="desc">በየቀኑ ወደ Google Drive</div></div>
-          <div class="switch on" onclick="this.classList.toggle('on')"><div class="dot"></div></div>
-        </div>
-      </div>
-      <div class="panel">
-        <div class="panel-head"><h3>📖 እገዛ እና ትምህርታዊ ቪዲዮዎች</h3></div>
-        <p style="color:var(--text-mut);font-size:.85rem;">ስለ Gurage POS App አጠቃቀም በአማርኛ የቀረቡ መመሪያዎችን ይመልከቱ።</p>
-        <button class="btn btn-ghost" onclick="toast('የእገዛ ማዕከል ይከፈታል')">ወደ እገዛ ማዕከል</button>
-      </div>
-      <button class="btn btn-outline-red" style="margin-top:16px" onclick="resetData()">🗑️ ናሙና መረጃን ዳግም አስጀምር</button>
-    </section>
-
-    <!-- ---- ADMIN DASHBOARD (UI demo — needs a real backend to show real data) ---- -->
-    <section class="page" id="page-admin">
-      <h1 class="page-title">🛡️ የአድሚን ዳሽቦርድ <span style="font-size:.6em;color:var(--text-mut);font-weight:600;">(ማሳያ / Demo UI)</span></h1>
-      <p class="page-sub">⚠️ ይህ ገጽ የገጽታ ማሳያ (UI demo) ብቻ ነው — እውነተኛ የብዙ-ተጠቃሚ መረጃ ለማሳየት እውነተኛ ሰርቨር/ዳታቤዝ ያስፈልጋል። ከታች ይመልከቱ።</p>
-
-      <div class="cards-grid">
-        <div class="kpi-card navy"><div class="lab">👥 ጠቅላላ ተጠቃሚዎች</div><div class="val" id="admKpiUsers">0</div></div>
-        <div class="kpi-card green"><div class="lab">💰 ጠቅላላ የተሰበሰበ ገቢ</div><div class="val" id="admKpiRevenue">0 ብር</div></div>
-        <div class="kpi-card amber"><div class="lab">⏳ በ5 ቀን ውስጥ የሚያልቅባቸው</div><div class="val" id="admKpiExpiring">0</div></div>
-        <div class="kpi-card red"><div class="lab">🔒 የተቆለፉ አካውንቶች</div><div class="val" id="admKpiLocked">0</div></div>
-      </div>
-
-      <div class="panel">
-        <div class="panel-head"><h3>የወርሃዊ ገቢ (ናሙና ግራፍ)</h3></div>
-        <canvas id="adminRevenueChart" height="90"></canvas>
-      </div>
-
-      <div class="panel">
-        <div class="panel-head"><h3>የተጠቃሚዎች ዝርዝር</h3></div>
-        <div class="table-container">
-          <table>
-            <thead><tr><th>ስም/ስልክ</th><th>ከተማ</th><th>የመጨረሻ መግቢያ</th><th>የክፍያ ሁኔታ</th><th>ሁኔታ</th><th>እርምጃ</th></tr></thead>
-            <tbody id="adminUsersBody"></tbody>
-          </table>
-        </div>
-      </div>
-    </section>
-  </div>
-</div>
-
-<!-- ================= LOCK SCREEN (subscription expired) ================= -->
-<div id="lockScreen">
-  <div class="auth-card" style="max-width:400px;">
-    <div class="auth-logo"><img src="icons/logo-256.png" alt="Gurage POS"></div>
-    <div style="text-align:center;font-size:2.2rem;margin-bottom:4px;">🔒</div>
-    <h1 style="text-align:center;">የአገልግሎት ጊዜ አልቋል</h1>
-    <p class="sub" id="lockMessage">የ30 ቀን ነጻ ሙከራዎ አልቋል። ውሂብዎ ሙሉ በሙሉ ደህንነቱ የተጠበቀ ነው — አይጠፋም። ለመቀጠል እባክዎ ይክፈሉ።</p>
-
-    <button class="btn btn-primary" onclick="goToPricingFromLock()">💳 አሁን ይክፈሉ</button>
-    <div style="height:10px;"></div>
-    <button class="btn btn-navy" onclick="simulatePaymentConfirm()">✅ ክፍያ ፈጽሜያለሁ (ማረጋገጫ ላክ)</button>
-
-    <div style="display:flex;gap:10px;margin-top:16px;">
-      <a href="https://t.me/gurage_pos_support" target="_blank" rel="noopener" class="btn btn-ghost" style="text-decoration:none;">📨 ቴሌግራም</a>
-      <a href="https://wa.me/251900000000" target="_blank" rel="noopener" class="btn btn-ghost" style="text-decoration:none;">💬 ዋትስአፕ</a>
-    </div>
-    <p style="font-size:.7rem;color:var(--text-mut);text-align:center;margin-top:14px;">
-      (የድጋፍ ሊንኮች ናሙና ናቸው — በእውነተኛ የቴሌግራም/ዋትስአፕ አድራሻዎ ይቀይሩ)
-    </p>
-  </div>
-</div>
-
-<div class="bottom-nav" id="bottomNav">
-  <div class="bn-item active" data-page="dashboard"><span class="ico">🏠</span>ዋና ገጽ</div>
-  <div class="bn-item" data-page="pos"><span class="ico">🛒</span>ሽያጭ</div>
-  <div class="bn-item" data-page="finance"><span class="ico">💸</span>ወጪ መዝገብ</div>
-  <div class="bn-item" data-page="receive"><span class="ico">➕</span>እቃ አስገባ</div>
-  <div class="bn-item" data-page="inventory"><span class="ico">📊</span>መጋዘን</div>
-</div>
-
-<!-- ---- Modals ---- -->
-<div class="modal-overlay" id="productModal">
-  <div class="modal">
-    <h3>➕ አዲስ ዕቃ</h3>
-    <div class="field"><label>የዕቃ ስም</label><input id="pmName" type="text" placeholder="ለምሳሌ፡ ሩዝ 25ኪግ"></div>
-    <div class="field"><label>የእቃ ኮድ (Product Code / SKU)</label><input id="pmSku" type="text" placeholder="ለምሳሌ፡ RCE-025"></div>
-    <div class="field"><label>ምድብ</label><input id="pmCat" type="text" placeholder="ምግብ ነክ"></div>
-    <div class="field"><label>የግዢ ዋጋ (ብር)</label><input id="pmCost" type="number" placeholder="0"></div>
-    <div class="field"><label>የሽያጭ ዋጋ (ብር)</label><input id="pmPrice" type="number" placeholder="0"></div>
-    <div class="field"><label>ቀሪ መጠን</label><input id="pmStock" type="number" placeholder="0"></div>
-    <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeModal('productModal')">ይቅር</button>
-      <button class="btn btn-primary" onclick="saveProduct()">አስቀምጥ</button>
-    </div>
-  </div>
-</div>
-
-<div class="modal-overlay" id="employeeModal">
-  <div class="modal">
-    <h3>➕ አዲስ ሰራተኛ</h3>
-    <div class="field"><label>ሙሉ ስም</label><input id="emName" type="text" placeholder="ስም"></div>
-    <div class="field"><label>ስልክ</label><input id="emPhone" type="text" placeholder="09xxxxxxxx"></div>
-    <div class="field"><label>ደረጃ</label>
-      <select id="emRole">
-        <option>ካሺር/ሰራተኛ</option><option>የቅርንጫፍ መሪ</option><option>የመጋዘን ሹም</option><option>ሂሳብ ሹም</option>
-      </select>
-    </div>
-    <div class="field"><label>ወርሃዊ ደሞዝ (ብር)</label><input id="emSalary" type="number" placeholder="0"></div>
-    <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeModal('employeeModal')">ይቅር</button>
-      <button class="btn btn-primary" onclick="saveEmployee()">አስቀምጥ</button>
-    </div>
-  </div>
-</div>
-
-<div class="modal-overlay" id="expenseModal">
-  <div class="modal">
-    <h3>➕ ወጪ መዝግብ</h3>
-    <div class="field"><label>የወጪ ዓይነት</label>
-      <select id="exType"><option>ኪራይ</option><option>ትራንስፖርት</option><option>ጉልበት</option><option>ግብዓት</option><option>ታክስ</option></select>
-    </div>
-    <div class="field"><label>መጠን (ብር)</label><input id="exAmount" type="number" placeholder="0"></div>
-    <div class="field"><label>የክፍያ ዘዴ</label>
-      <select id="exMethod"><option>ጥሬ ገንዘብ</option><option>ባንክ</option><option>ቴሌብር</option></select>
-    </div>
-    <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeModal('expenseModal')">ይቅር</button>
-      <button class="btn btn-primary" onclick="saveExpense()">አስቀምጥ</button>
-    </div>
-  </div>
-</div>
-
-<div class="modal-overlay" id="editProductModal">
-  <div class="modal">
-    <h3>✏️ ዕቃ አርም</h3>
-    <input type="hidden" id="epId">
-    <div class="field"><label>የዕቃ ስም</label><input id="epName" type="text"></div>
-    <div class="field"><label>የእቃ ኮድ (SKU)</label><input id="epSku" type="text"></div>
-    <div class="field"><label>ምድብ</label><input id="epCat" type="text"></div>
-    <div class="field"><label>የግዢ ዋጋ (ብር)</label><input id="epCost" type="number"></div>
-    <div class="field"><label>የሽያጭ ዋጋ (ብር)</label><input id="epPrice" type="number"></div>
-    <div class="field"><label>ቀሪ መጠን (ስቶክ)</label><input id="epStock" type="number"></div>
-    <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeModal('editProductModal')">ይቅር</button>
-      <button class="btn btn-primary" onclick="saveEditedProduct()">አስቀምጥ</button>
-    </div>
-  </div>
-</div>
-
-<div class="modal-overlay" id="editBatchModal">
-  <div class="modal" style="max-width:640px">
-    <h3>✏️ የጭነት መዝገብ አርም</h3>
-    <input type="hidden" id="ebId">
-    <div class="form-grid">
-      <div class="field"><label>የመኪናው ታርጋ</label><input id="ebPlate" type="text"></div>
-      <div class="field"><label>አሽከርካሪ/አራጋፊ ስም</label><input id="ebDriver" type="text"></div>
-      <div class="field"><label>የትራንስፖርት ወጪ (ብር)</label><input id="ebTransportCost" type="number"></div>
-      <div class="field"><label>የጫኝና አውራጅ ወጪ (ብር)</label><input id="ebLoadingCost" type="number"></div>
-    </div>
-    <p style="font-size:.78rem;color:var(--text-mut);margin:4px 0 12px;">ማስታወሻ፦ ብዛት (ስቶክ ላይ ስለተደመረ) ከዚህ አይስተካከልም — ብዛት ማስተካከል ካስፈለገ ከ«መጋዘን» ገጽ ቀጥታ ያድርጉ። ዋጋ/ኮድ/አቅራቢ ግን እዚሁ ማስተካከል ይቻላል።</p>
-    <div id="ebItemsContainer"></div>
-    <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeModal('editBatchModal')">ይቅር</button>
-      <button class="btn btn-primary" onclick="saveEditedBatch()">💾 ለውጡን አስቀምጥ</button>
-    </div>
-  </div>
-</div>
-
-<div class="modal-overlay" id="capitalModal">
-  <div class="modal">
-    <h3>✏️ ጠቅላላ ካፒታል አርም</h3>
-    <div class="field"><label>የካፒታል መጠን (ብር)</label><input id="capitalInput" type="number" placeholder="1000000"></div>
-    <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeModal('capitalModal')">ይቅር</button>
-      <button class="btn btn-primary" onclick="saveCapital()">አስቀምጥ</button>
-    </div>
-  </div>
-</div>
-
-<!-- Hidden print-only receipt (populated by printBatchReceipt()) -->
-<div id="printReceipt">
-  <div class="pr-head">
-    <h2>Gurage POS — የእቃ ገቢ መመዝገቢያ ደረሰኝ</h2>
-    <div id="prMeta" style="font-size:13px;"></div>
-  </div>
-  <table>
-    <thead><tr>
-      <th>ዕቃ</th><th>ኮድ</th><th>ከማን</th><th>ብዛት</th><th>ግዢ ዋጋ</th><th>+ ወጪ/ፍሬ</th><th>የቆመበት ዋጋ</th><th>ሽያጭ ዋጋ</th><th>የትርፍ መጠን</th>
-    </tr></thead>
-    <tbody id="prBody"></tbody>
-  </table>
-  <p style="margin-top:16px;font-size:12px;">ይህ ደረሰኝ Gurage POS App በራስ-ሰር ያዘጋጀው ነው።</p>
-</div>
-
-<script>
-/* ===================== STATE ===================== */
-let STATE = {
-  products: [], employees: [], sales: [], expenses: [], debts: [], batches: [],
-  cart: [], payMethod: 'ጥሬ ገንዘብ', invFilter: 'all', branch: 'addis',
-  subscription: null, profile: null, capital: 1000000
-};
-let WIZ = { totalExpense:0, itemCount:0, items:[] };
-let salesChartRef = null, reportChartRef = null;
-
-const seedProducts = [
-  {id:'p1', name:'ሩዝ 25 ኪግ', sku:'RCE-025', cat:'ምግብ ነክ', cost:1800, price:2100, stock:14, emoji:'🍚'},
-  {id:'p2', name:'ዘይት 5 ሊትር', sku:'OIL-005', cat:'ምግብ ነክ', cost:750, price:900, stock:3, emoji:'🛢️'},
-  {id:'p3', name:'ስኳር 1 ኪግ', sku:'SGR-001', cat:'ምግብ ነክ', cost:55, price:70, stock:120, emoji:'🍬'},
-  {id:'p4', name:'ኮካ ኮላ 1L', sku:'COK-1L', cat:'መጠጥ', cost:35, price:50, stock:60, emoji:'🥤'},
-  {id:'p5', name:'ሳሙና ወፍራም', sku:'SOP-BAR', cat:'ንፅህና', cost:60, price:85, stock:0, emoji:'🧼'},
-  {id:'p6', name:'ፓስታ 500ግ', sku:'PST-500', cat:'ምግብ ነክ', cost:40, price:55, stock:8, emoji:'🍝'},
-  {id:'p7', name:'ሻይ ቅጠል', sku:'TEA-LFA', cat:'መጠጥ', cost:90, price:120, stock:25, emoji:'🍵'},
-  {id:'p8', name:'ብስኩት ጥቅል', sku:'BSC-PCK', cat:'ንፅህና', cost:15, price:25, stock:5, emoji:'🍪'},
-];
-const seedEmployees = [
-  {id:'e1', name:'አበበ ተስፋዬ', phone:'0911001122', role:'ካሺር/ሰራተኛ', salary:4500, todaySales:2200},
-  {id:'e2', name:'ሰላም ገብሬ', phone:'0922334455', role:'የቅርንጫፍ መሪ', salary:7000, todaySales:5100},
-  {id:'e3', name:'ዳዊት ቢያድግልኝ', phone:'0933445566', role:'የመጋዘን ሹም', salary:4000, todaySales:0},
-];
-const seedDebts = [
-  {customer:'ሀና ትሬዲንግ', amount:5200, date:'2026-07-18', status:'ያልተከፈለ'},
-  {customer:'ፍቃዱ ሱቅ', amount:6800, date:'2026-07-10', status:'ያልተከፈለ'},
-];
-const seedExpenses = [
-  {type:'ኪራይ', amount:8000, date:'2026-07-01', method:'ባንክ'},
-  {type:'ትራንስፖርት', amount:1200, date:'2026-07-15', method:'ጥሬ ገንዘብ'},
-  {type:'ጉልበት', amount:900, date:'2026-07-20', method:'ቴሌብር'},
-];
-function seedSales(){
-  const out=[]; const methods=['ጥሬ ገንዘብ','ቴሌብር','ባንክ','ብድር'];
-  const demoItemSets = [
-    [{id:'p1',name:'ሩዝ 25 ኪግ',qty:2,price:2100}],
-    [{id:'p3',name:'ስኳር 1 ኪግ',qty:5,price:70},{id:'p4',name:'ኮካ ኮላ 1L',qty:3,price:50}],
-    [{id:'p4',name:'ኮካ ኮላ 1L',qty:4,price:50}],
-    [{id:'p6',name:'ፓስታ 500ግ',qty:6,price:55}],
-    [{id:'p3',name:'ስኳር 1 ኪግ',qty:8,price:70}],
-    [{id:'p7',name:'ሻይ ቅጠል',qty:2,price:120},{id:'p4',name:'ኮካ ኮላ 1L',qty:2,price:50}],
-    [{id:'p1',name:'ሩዝ 25 ኪግ',qty:1,price:2100}],
-    [{id:'p4',name:'ኮካ ኮላ 1L',qty:5,price:50}],
-    [{id:'p3',name:'ስኳር 1 ኪግ',qty:3,price:70}],
-  ];
-  for(let i=0;i<9;i++){
-    out.push({
-      id:'RCT'+(1000+i), time:`ዛሬ ${9+i}:${(i*7)%60<10?'0':''}${(i*7)%60}`,
-      method: methods[i%4], total: 300 + (i*137)%1800, branch: i%3===0?'adama':'addis',
-      date: `2026-07-${18+(i%6)}`, items: demoItemSets[i]
-    });
-  }
-  return out;
-}
-
-/* ===================== STORAGE ===================== */
-/* Portable storage: works inside Claude (window.storage), and on real
-   hosting like GitHub Pages (falls back to localStorage, then to
-   in-memory only if neither is available — e.g. private browsing). */
-const STORAGE_KEY = 'gurage-pos-data';
-let _memoryFallback = null;
-
-async function storageGet(key){
-  if(typeof window.storage !== 'undefined' && window.storage && window.storage.get){
-    try{ return await window.storage.get(key); }catch(e){ /* fall through */ }
-  }
-  try{
-    const v = localStorage.getItem(key);
-    return v ? { key, value:v } : null;
-  }catch(e){
-    return _memoryFallback ? { key, value:_memoryFallback } : null;
-  }
-}
-async function storageSet(key, value){
-  if(typeof window.storage !== 'undefined' && window.storage && window.storage.set){
-    try{ return await window.storage.set(key, value); }catch(e){ /* fall through */ }
-  }
-  try{ localStorage.setItem(key, value); }
-  catch(e){ _memoryFallback = value; }
-}
-
-async function loadState(){
-  try{
-    const res = await storageGet(STORAGE_KEY);
-    if(res && res.value){
-      const d = JSON.parse(res.value);
-      STATE.products = d.products || seedProducts;
-      STATE.employees = d.employees || seedEmployees;
-      STATE.sales = d.sales || seedSales();
-      STATE.expenses = d.expenses || seedExpenses;
-      STATE.debts = d.debts || seedDebts;
-      STATE.batches = d.batches || [];
-      STATE.subscription = d.subscription || null;
-      STATE.capital = (typeof d.capital === 'number') ? d.capital : 1000000;
-      STATE.profile = d.profile || null;
-    } else { throw new Error('empty'); }
-  }catch(e){
-    STATE.products = JSON.parse(JSON.stringify(seedProducts));
-    STATE.employees = JSON.parse(JSON.stringify(seedEmployees));
-    STATE.sales = seedSales();
-    STATE.expenses = JSON.parse(JSON.stringify(seedExpenses));
-    STATE.debts = JSON.parse(JSON.stringify(seedDebts));
-    STATE.batches = [];
-    await persist();
-  }
-}
-async function persist(){
-  try{
-    await storageSet(STORAGE_KEY, JSON.stringify({
-      products: STATE.products, employees: STATE.employees, sales: STATE.sales,
-      expenses: STATE.expenses, debts: STATE.debts, batches: STATE.batches,
-      subscription: STATE.subscription, profile: STATE.profile, capital: STATE.capital
-    }));
-  }catch(e){ console.warn('storage save failed', e); }
-}
-
-/* ===================== UTIL ===================== */
-function birr(n){ return Number(n).toLocaleString('en-US') + ' ብር'; }
-function toast(msg){
-  const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show');
-  clearTimeout(window._toastT); window._toastT=setTimeout(()=>t.classList.remove('show'), 2400);
-}
-function closeModal(id){ document.getElementById(id).classList.remove('show'); }
-function openModalEl(id){ document.getElementById(id).classList.add('show'); }
-
-/* ===================== AUTH ===================== */
-function toggleEmailSignup(){
-  const box = document.getElementById('emailSignupBox');
-  const open = box.style.display !== 'none';
-  box.style.display = open ? 'none' : 'block';
-  document.getElementById('emailToggleLink').textContent = open
-    ? '+ የኢሜይል/የይለፍ ቃል ምዝገባ (አማራጭ) ▾'
-    : '− የኢሜይል/የይለፍ ቃል ምዝገባ (አማራጭ) ▴';
-}
-function sendOtp(){
-  const phone = document.getElementById('phoneInput').value.trim();
-  if(phone.length < 9){ toast('እባክዎ ትክክለኛ ስልክ ቁጥር ያስገቡ'); return; }
-  document.getElementById('otpPhoneShow').textContent = phone;
-  document.getElementById('authStep1').style.display='none';
-  document.getElementById('authStep2').style.display='block';
-  document.querySelectorAll('.otp-box')[0].focus();
-  toast('📩 OTP ኮድ ተልኳል (ሙከራ፡ 1234)');
-}
-function otpNext(el){
-  if(el.value.length===1 && el.nextElementSibling && el.nextElementSibling.classList.contains('otp-box')){
-    el.nextElementSibling.focus();
-  }
-}
-async function verifyOtp(){
-  const boxes = document.querySelectorAll('.otp-box');
-  const code = Array.from(boxes).map(b=>b.value).join('');
-  if(code !== '1234'){ toast('❌ የተሳሳተ ኮድ፣ እንደገና ይሞክሩ (ፍንጭ፡ 1234)'); return; }
-
-  STATE.profile = {
-    phone: document.getElementById('phoneInput').value.trim(),
-    email: document.getElementById('emailInput')?.value.trim() || '',
-  };
-  await ensureSubscription();   // creates a 30-day trial on first-ever login
-
-  document.getElementById('authScreen').style.display='none';
-  document.getElementById('app').classList.add('active');
-  toast('👋 እንኳን ደህና መጡ!');
-  refreshAll();
-  renderSubscriptionUI();
-}
-function logout(){
-  document.getElementById('app').classList.remove('active');
-  document.getElementById('authScreen').style.display='flex';
-  document.getElementById('authStep1').style.display='block';
-  document.getElementById('authStep2').style.display='none';
-  document.getElementById('phoneInput').value='';
-  document.querySelectorAll('.otp-box').forEach(b=>b.value='');
-}
-
-/* ===================== NAV ===================== */
-function setPage(name){
-  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-  document.getElementById('page-'+name).classList.add('active');
-  document.querySelectorAll('.nav-item[data-page]').forEach(n=>n.classList.toggle('active', n.dataset.page===name));
-  document.querySelectorAll('.bn-item[data-page]').forEach(n=>n.classList.toggle('active', n.dataset.page===name));
-  closeSidebar();
-  document.getElementById('cartPanel').classList.remove('show-mobile');
-  const titles = {dashboard:'ዳሽቦርድ', pos:'ሽያጭ', inventory:'መጋዘን', receive:'እቃ ገቢ', batchhistory:'የጭነት ታሪክ', employees:'ሰራተኞች', finance:'ገቢ/ወጪ', reports:'ሪፖርት', pricing:'ፓኬጆች', admin:'አድሚን', settings:'ቅንብሮች'};
-  document.title = 'Gurage POS | ' + (titles[name]||'');
-  if(name==='reports') renderReportChart();
-  if(name==='receive') resetWizard();
-  if(name==='batchhistory') renderBatchHistory();
-  if(name==='admin') renderAdminDashboard();
-}
-document.querySelectorAll('.nav-item[data-page]').forEach(n=>n.addEventListener('click', ()=>setPage(n.dataset.page)));
-document.querySelectorAll('.bn-item[data-page]').forEach(n=>n.addEventListener('click', ()=>setPage(n.dataset.page)));
-
-function openSidebar(){ document.getElementById('sidebar').classList.add('open'); document.getElementById('sidebarBackdrop').classList.add('show'); }
-function closeSidebar(){ document.getElementById('sidebar').classList.remove('open'); document.getElementById('sidebarBackdrop').classList.remove('show'); }
-function toggleMobileCart(){ document.getElementById('cartPanel').classList.toggle('show-mobile'); }
-
-function onBranchChange(){
-  STATE.branch = document.getElementById('branchSelect').value;
-  toast('ቅርንጫፍ ተቀይሯል');
-  refreshAll();
-}
-
-/* ===================== DASHBOARD ===================== */
-function renderDashboard(){
-  const todaySales = STATE.sales.filter(s=>s.branch===STATE.branch);
-  const totalSales = todaySales.reduce((a,s)=>a+s.total,0);
-  const profit = Math.round(totalSales*0.22);
-  const debt = STATE.debts.reduce((a,d)=>a+d.amount,0);
-
-  // -- Header branch name + capital banner --
-  const branchNames = { addis:'አዲስ አበባ ቅርንጫፍ', adama:'አዳማ ቅርንጫፍ' };
-  const bn = document.getElementById('dv2BranchName');
-  if(bn) bn.textContent = branchNames[STATE.branch] || STATE.branch;
-  const capEl = document.getElementById('dv2Capital');
-  if(capEl) capEl.textContent = birr(STATE.capital);
-
-  // -- Sales / Profit cards with a simple vs-yesterday % (yesterday = mock baseline) --
-  const yesterdaySales = 29430, yesterdayProfit = 4020;
-  const salesPct = yesterdaySales>0 ? Math.round(((totalSales-yesterdaySales)/yesterdaySales)*100) : 0;
-  const profitPct = yesterdayProfit>0 ? Math.round(((profit-yesterdayProfit)/yesterdayProfit)*100) : 0;
-  document.getElementById('dv2Sales').textContent = totalSales.toLocaleString('en-US');
-  document.getElementById('dv2SalesSub').textContent =
-    (salesPct>=0 ? `ከትላንት የተሻለ በ${salesPct}% ብልጫ` : `ከትላንት ${Math.abs(salesPct)}% ያነሰ`);
-  document.getElementById('dv2Profit').textContent = profit.toLocaleString('en-US');
-  document.getElementById('dv2ProfitSub').textContent =
-    (profitPct>=0 ? `ከትላንት ${profitPct}% ብልጫ ለውጥ` : `ከትላንት ${Math.abs(profitPct)}% ቅናሽ`);
-
-  // -- Low/out-of-stock list --
-  const lowItems = STATE.products.filter(p=>p.stock<=10).sort((a,b)=>a.stock-b.stock).slice(0,4);
-  document.getElementById('dv2LowList').innerHTML = lowItems.length ? lowItems.map(p=>{
-    const cls = p.stock===0 ? 'dv2-out' : (p.stock<=5 ? 'dv2-low' : '');
-    const txt = p.stock===0 ? 'አልቀዋል' : `${p.stock} ፍሬ ቀሪዋል`;
-    return `<div class="dv2-low-row ${cls}"><span>${p.name}</span><b>${txt}</b></div>`;
-  }).join('') : `<div class="dv2-empty-mut">ሁሉም ዕቃዎች በቂ ስቶክ አላቸው</div>`;
-
-  // -- Uncollected debt --
-  document.getElementById('dv2Debt').textContent = birr(debt);
-
-  // -- New items entered today (from today's batches) --
-  const todayIso = new Date().toISOString().slice(0,10);
-  const todaysBatchItems = (STATE.batches||[])
-    .filter(b => (b.timestamp?.iso||'').slice(0,10) === todayIso)
-    .flatMap(b => b.items.map(it=>it.name));
-  const niEl = document.getElementById('dv2NewItems');
-  if(todaysBatchItems.length){
-    niEl.classList.remove('dv2-empty-mut');
-    niEl.innerHTML = todaysBatchItems.map(n=>`<span class="pill ok" style="margin:2px 4px 2px 0;">${n}</span>`).join('');
-  } else {
-    niEl.classList.add('dv2-empty-mut');
-    niEl.textContent = 'ዛሬ ምንም አዲስ እቃ አልገባም';
+```html
+ዛሬ ምንም አዲስ እቃ አልገባም';
   }
 
+  // -- Sales activity chart --
   renderSalesChart();
 }
+
+function openCapitalModal(){
+  document.getElementById('capitalInput').value = STATE.capital;
+  openModalEl('capitalModal');
+}
+function saveCapital(){
+  const val = parseFloat(document.getElementById('capitalInput').value);
+  if(!isNaN(val) && val>=0){
+    STATE.capital = val;
+    persist();
+    renderDashboard();
+    closeModal('capitalModal');
+    toast('ጠቅላላ ካፒታል ተስተካክሏል');
+  } else { toast('እባክዎ ትክክለኛ የገንዘብ መጠን ያስገቡ'); }
+}
+
 function renderSalesChart(){
-  const ctx = document.getElementById('dv2Chart');
+  const ctx = document.getElementById('dv2Chart')?.getContext('2d');
   if(!ctx) return;
-  const labels = ['ሰኞ','ማክሰ','ረቡዕ','ሐሙስ','ዓርብ','ቅዳሜ','እሁድ'];
-  const salesData = [4200,5100,3900,6200,7100,9800,5400];
   if(salesChartRef) salesChartRef.destroy();
+
   salesChartRef = new Chart(ctx, {
-    type:'line',
-    data:{ labels, datasets:[{
-      data:salesData, borderColor:'#8fce2b', backgroundColor:'rgba(143,206,43,.12)',
-      fill:true, tension:.4, pointRadius:3, pointBackgroundColor:'#8fce2b', borderWidth:2.5
-    }]},
-    options:{
-      responsive:true, plugins:{ legend:{ display:false } },
-      scales:{
-        x:{ ticks:{ color:'#9a9a9a', font:{ size:10 } }, grid:{ color:'#2a2a2a' } },
-        y:{ ticks:{ color:'#9a9a9a', font:{ size:10 } }, grid:{ color:'#2a2a2a' }, beginAtZero:true }
+    type: 'line',
+    data: {
+      labels: ['ሰኞ', 'ማክሰኞ', 'ረቡዕ', 'ሐሙስ', 'አርብ', 'ቅዳሜ', 'እሁድ'],
+      datasets: [
+        { label: 'ሽያጭ', data: [12000, 19000, 15000, 22000, 30000, 28000, 35000], borderColor: '#8fce2b', backgroundColor: 'rgba(143,206,43,0.15)', fill: true, tension: 0.35 },
+        { label: 'ትርፍ', data: [3000, 4800, 3800, 5500, 7500, 7000, 8800], borderColor: '#f5a623', backgroundColor: 'transparent', borderDash: [4,4], tension: 0.35 }
+      ]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { labels: { color: '#f2f2f2', font: { family: 'Noto Sans Ethiopic' } } } },
+      scales: {
+        x: { ticks: { color: '#9a9a9a' }, grid: { color: '#2c2c2c' } },
+        y: { ticks: { color: '#9a9a9a' }, grid: { color: '#2c2c2c' } }
       }
     }
   });
 }
-function renderReportChart(){
-  const ctx = document.getElementById('reportChart');
-  const labels = ['ሰኞ','ማክሰ','ረቡዕ','ሐሙስ','ዓርብ','ቅዳሜ','እሁድ'];
-  const data = [4200,5100,3900,6200,7100,9800,5400];
-  if(reportChartRef) reportChartRef.destroy();
-  reportChartRef = new Chart(ctx, {
-    type:'line',
-    data:{ labels, datasets:[{ label:'ሽያጭ (ብር)', data, borderColor:'#1E3A8A', backgroundColor:'rgba(30,58,138,.12)', fill:true, tension:.35, pointBackgroundColor:'#10B981' }]},
-    options:{ responsive:true, plugins:{legend:{display:false}} }
-  });
-  document.getElementById('allSalesBody').innerHTML = STATE.sales.map(s=>`
-    <tr><td>${s.id}</td><td>${s.date} · ${s.time}</td><td>${s.branch==='addis'?'አዲስ አበባ':'አዳማ'}</td><td>${s.method}</td><td>${birr(s.total)}</td></tr>
-  `).join('');
-}
 
 /* ===================== POS ===================== */
-function renderCategoryTabs(){
-  const cats = ['ሁሉም', ...new Set(STATE.products.map(p=>p.cat))];
-  document.getElementById('categoryTabs').innerHTML = cats.map((c,i)=>
-    `<button class="${i===0?'active':''}" data-c="${c}" onclick="selectCatTab(this)">${c}</button>`
-  ).join('');
-}
-function selectCatTab(btn){
-  document.querySelectorAll('#categoryTabs button').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active'); renderProductGrid();
-}
 function renderProductGrid(){
-  const search = (document.getElementById('posSearch').value||'').toLowerCase();
-  const activeCat = document.querySelector('#categoryTabs button.active')?.dataset.c || 'ሁሉም';
-  let list = STATE.products.filter(p=>p.name.toLowerCase().includes(search));
-  if(activeCat !== 'ሁሉም') list = list.filter(p=>p.cat===activeCat);
-  document.getElementById('productGrid').innerHTML = list.map(p=>`
+  const search = document.getElementById('posSearch').value.toLowerCase();
+  const activeTab = document.querySelector('.filter-tabs button.active')?.dataset.c || 'all';
+  
+  const cats = ['all', ...new Set(STATE.products.map(p=>p.cat))];
+  document.getElementById('categoryTabs').innerHTML = cats.map(c=>
+    `<button class="${c===activeTab?'active':''}" data-c="${c}" onclick="filterPosCat('${c}',this)">${c==='all'?'ሁሉም':c}</button>`
+  ).join('');
+
+  const grid = document.getElementById('productGrid');
+  const filtered = STATE.products.filter(p=>{
+    const matchCat = activeTab==='all' || p.cat===activeTab;
+    const matchSearch = p.name.toLowerCase().includes(search) || p.sku.toLowerCase().includes(search);
+    return matchCat && matchSearch;
+  });
+
+  if(!filtered.length){
+    grid.innerHTML = `<p style="grid-column:1/-1;text-align:center;color:var(--text-mut);padding:20px;">ምንም የተገኘ ዕቃ የለም</p>`;
+    return;
+  }
+
+  grid.innerHTML = filtered.map(p=>`
     <div class="product-card" onclick="addToCart('${p.id}')">
       <div class="thumb">${p.emoji||'📦'}</div>
       <div class="pname">${p.name}</div>
-      <div class="pmeta"><span>ስቶክ፦ ${p.stock}</span><b>${p.price} ብር</b></div>
+      <div class="pmeta"><span>ቀሪ፦ ${p.stock}</span><b>${birr(p.price)}</b></div>
     </div>
-  `).join('') || `<div class="cart-empty">ምንም ዕቃ አልተገኘም</div>`;
+  `).join('');
 }
+
+function filterPosCat(cat, btn){
+  document.querySelectorAll('#categoryTabs button').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderProductGrid();
+}
+
 function addToCart(id){
   const prod = STATE.products.find(p=>p.id===id);
-  if(!prod){ return; }
-  if(prod.stock<=0){ toast('⚠️ '+prod.name+' ስቶክ አልቋል'); return; }
-  const item = STATE.cart.find(c=>c.id===id);
-  if(item){
-    if(item.qty >= prod.stock){ toast('⚠️ በቂ ስቶክ የለም'); return; }
-    item.qty++;
-  } else { STATE.cart.push({id, name:prod.name, price:prod.price, qty:1}); }
-  renderCart();
-}
-function changeQty(id, delta){
-  const item = STATE.cart.find(c=>c.id===id);
-  const prod = STATE.products.find(p=>p.id===id);
-  if(!item) return;
-  item.qty += delta;
-  if(item.qty <= 0){ STATE.cart = STATE.cart.filter(c=>c.id!==id); }
-  else if(item.qty > prod.stock){ item.qty = prod.stock; toast('⚠️ ከቀሪ ስቶክ በላይ አይቻልም'); }
-  renderCart();
-}
-function renderCart(){
-  const box = document.getElementById('cartItems');
-  if(STATE.cart.length===0){
-    box.innerHTML = `<div class="cart-empty">ቅርጫት ባዶ ነው</div>`;
+  if(!prod || prod.stock <= 0){ toast('❌ ይህ ዕቃ ከስቶክ አልቋል!'); return; }
+  
+  const inCart = STATE.cart.find(c=>c.id===id);
+  if(inCart){
+    if(inCart.qty >= prod.stock){ toast('⚠️ ከተዘጋጀው የቀሪ ስቶክ መጠን በላይ መምረጥ አይቻልም'); return; }
+    inCart.qty++;
   } else {
-    box.innerHTML = STATE.cart.map(c=>`
-      <div class="cart-item">
-        <div class="ci-name">${c.name}<br><span style="color:var(--text-mut)">${c.price} ብር</span></div>
-        <div class="qty-ctrl">
-          <button onclick="changeQty('${c.id}',-1)">−</button>
-          <span>${c.qty}</span>
-          <button onclick="changeQty('${c.id}',1)">+</button>
-        </div>
-      </div>
-    `).join('');
+    STATE.cart.push({ id: prod.id, name: prod.name, price: prod.price, qty: 1 });
   }
-  const total = STATE.cart.reduce((a,c)=>a+c.price*c.qty,0);
-  document.getElementById('cartTotal').textContent = birr(total);
-  document.getElementById('cartCountFab').textContent = STATE.cart.reduce((a,c)=>a+c.qty,0);
+  renderCart();
 }
-document.getElementById('payMethods').addEventListener('click', (e)=>{
-  const btn = e.target.closest('button'); if(!btn) return;
-  document.querySelectorAll('#payMethods button').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active'); STATE.payMethod = btn.dataset.m;
+
+function updateCartQty(id, delta){
+  const item = STATE.cart.find(c=>c.id===id);
+  if(!item) return;
+  const prod = STATE.products.find(p=>p.id===id);
+  
+  item.qty += delta;
+  if(item.qty > prod.stock){ item.qty = prod.stock; toast('⚠️ ከተዘጋጀው የቀሪ ስቶክ መጠን በላይ መምረጥ አይቻልም'); }
+  if(item.qty <= 0){ STATE.cart = STATE.cart.filter(c=>c.id!==id); }
+  renderCart();
+}
+
+function renderCart(){
+  const container = document.getElementById('cartItems');
+  const totalEl = document.getElementById('cartTotal');
+  const countFab = document.getElementById('cartCountFab');
+
+  if(!STATE.cart.length){
+    container.innerHTML = `<div class="cart-empty">ቅርጫት ባዶ ነው</div>`;
+    totalEl.textContent = birr(0);
+    if(countFab) countFab.textContent = '0';
+    return;
+  }
+
+  let total = 0, count = 0;
+  container.innerHTML = STATE.cart.map(c=>{
+    const sub = c.price * c.qty;
+    total += sub; count += c.qty;
+    return `
+      <div class="cart-item">
+        <div class="ci-name">${c.name}<br><small style="color:var(--text-mut);">${birr(c.price)}</small></div>
+        <div class="qty-ctrl">
+          <button onclick="updateCartQty('${c.id}', -1)">-</button>
+          <span><b>${c.qty}</b></span>
+          <button onclick="updateCartQty('${c.id}', 1)">+</button>
+        </div>
+        <div style="font-weight:700;width:70px;text-align:right;">${birr(sub)}</div>
+      </div>
+    `;
+  }).join('');
+
+  totalEl.textContent = birr(total);
+  if(countFab) countFab.textContent = count;
+}
+
+document.querySelectorAll('#payMethods button').forEach(b=>{
+  b.addEventListener('click', ()=>{
+    document.querySelectorAll('#payMethods button').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+    STATE.payMethod = b.dataset.m;
+  });
 });
+
 async function completeSale(){
-  if(STATE.cart.length===0){ toast('⚠️ እባክዎ ዕቃ ይምረጡ'); return; }
-  const total = STATE.cart.reduce((a,c)=>a+c.price*c.qty,0);
-  STATE.cart.forEach(c=>{
-    const prod = STATE.products.find(p=>p.id===c.id);
-    if(prod) prod.stock -= c.qty;
-  });
+  if(!STATE.cart.length){ toast('እባክዎ መጀመሪያ ዕቃ ወደ ቅርጫት ያስገቡ'); return; }
+
+  const total = STATE.cart.reduce((a,c)=>a + (c.price*c.qty), 0);
   const now = new Date();
-  STATE.sales.unshift({
-    id:'RCT'+Math.floor(1000+Math.random()*8999),
-    time:`ዛሬ ${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')}`,
+  const newSale = {
+    id: 'RCT' + Math.floor(1000 + Math.random()*9000),
+    time: `ዛሬ ${now.getHours()}:${now.getMinutes()<10?'0':''}${now.getMinutes()}`,
+    method: STATE.payMethod,
+    total: total,
+    branch: STATE.branch,
     date: now.toISOString().slice(0,10),
-    method: STATE.payMethod, total, branch: STATE.branch,
-    items: STATE.cart.map(c=>({ id:c.id, name:c.name, qty:c.qty, price:c.price }))
+    items: [...STATE.cart]
+  };
+
+  // Deduct Stock
+  STATE.cart.forEach(c=>{
+    const p = STATE.products.find(x=>x.id===c.id);
+    if(p) p.stock = Math.max(0, p.stock - c.qty);
   });
+
+  if(STATE.payMethod === 'ብድር'){
+    STATE.debts.push({ customer: 'ደንበኛ (ከPOS የተሸጠ)', amount: total, date: newSale.date, status: 'ያልተከፈለ' });
+  }
+
+  STATE.sales.unshift(newSale);
   STATE.cart = [];
-  renderCart(); renderProductGrid(); renderInventory(); renderDashboard();
   await persist();
-  toast('✅ ሽያጭ ተጠናቋል & ደረሰኝ ታትሟል');
-  document.getElementById('cartPanel').classList.remove('show-mobile');
+
+  toast('✅ ሽያጭ በተሳካ ሁኔታ ተጠናቋል!');
+  renderCart();
+  refreshAll();
 }
 
 /* ===================== INVENTORY ===================== */
@@ -1671,303 +190,789 @@ function setInvFilter(f, btn){
   btn.classList.add('active');
   renderInventory();
 }
-function renderInvCategoryOptions(){
-  const sel = document.getElementById('invCategorySelect');
-  const current = sel.value || 'ሁሉም';
-  const cats = ['ሁሉም', ...new Set(STATE.products.map(p=>p.cat))];
-  sel.innerHTML = cats.map(c=>`<option value="${c}">${c==='ሁሉም'?'ሁሉም ምድቦች':c}</option>`).join('');
-  if(cats.includes(current)) sel.value = current;
-}
-function toggleInvRow(id){
-  const row = document.querySelector(`.inv-row[data-id="${id}"]`);
-  if(row) row.classList.toggle('expanded');
-}
-function daysUntil(dateStr){
-  if(!dateStr) return null;
-  return Math.ceil((new Date(dateStr) - new Date()) / 86400000);
-}
-function expiryBadgeHtml(p){
-  const d = daysUntil(p.expiry);
-  if(d===null) return '';
-  if(d < 0) return `<span class="exp-badge bad">ጊዜው አልፏል</span>`;
-  if(d <= 30) return `<span class="exp-badge warn">${d} ቀን ቀርቷል</span>`;
-  return '';
-}
-
-/* ---- Inventory analytics: top-selling / recently-added / slow-moving / totals ---- */
-function renderInventoryInsights(){
-  const topEl = document.getElementById('insightTopSelling');
-  const newEl = document.getElementById('insightRecentlyAdded');
-  const slowEl = document.getElementById('insightSlowMoving');
-  if(!topEl || !newEl || !slowEl) return; // only render when the inventory page markup is present
-
-  // ---- Top selling: aggregate qty sold per product across recorded sale line-items ----
-  const soldQty = {}; // productId -> qty
-  STATE.sales.forEach(s=>{
-    (s.items||[]).forEach(it=>{ soldQty[it.id] = (soldQty[it.id]||0) + it.qty; });
-  });
-  const topSellers = Object.entries(soldQty)
-    .map(([id,qty])=>({ product: STATE.products.find(p=>p.id===id), qty }))
-    .filter(x=>x.product)
-    .sort((a,b)=>b.qty-a.qty)
-    .slice(0,4);
-  topEl.innerHTML = topSellers.length
-    ? topSellers.map(x=>`<div class="inv-insight-row"><span class="ir-name">${x.product.name}</span><span class="ir-meta green">${x.qty} ተሽጧል</span></div>`).join('')
-    : `<div class="inv-insight-empty">ገና የተመዘገበ ሽያጭ የለም</div>`;
-
-  // ---- Recently added: newest createdAt / lastRestockedAt across products ----
-  const recent = STATE.products
-    .map(p=>({ p, at: p.lastRestockedAt || p.createdAt }))
-    .filter(x=>x.at)
-    .sort((a,b)=> new Date(b.at) - new Date(a.at))
-    .slice(0,4);
-  newEl.innerHTML = recent.length
-    ? recent.map(x=>`<div class="inv-insight-row"><span class="ir-name">${x.p.name}</span><span class="ir-meta">${x.at.slice(0,10)}</span></div>`).join('')
-    : `<div class="inv-insight-empty">የቅርብ ጊዜ ጭነት የለም</div>`;
-
-  // ---- Slow-moving: has stock, never appears in soldQty, ranked by tied-up capital ----
-  const slow = STATE.products
-    .filter(p=>p.stock>0 && !soldQty[p.id])
-    .map(p=>({ p, value: p.stock*p.cost }))
-    .sort((a,b)=>b.value-a.value)
-    .slice(0,4);
-  slowEl.innerHTML = slow.length
-    ? slow.map(x=>`<div class="inv-insight-row"><span class="ir-name">${x.p.name}</span><span class="ir-meta amber">${birr(x.value)}</span></div>`).join('')
-    : `<div class="inv-insight-empty">ሁሉም ዕቃዎች እየተሸጡ ነው 👍</div>`;
-
-  // ---- Totals ----
-  document.getElementById('insightTotalCount').textContent = STATE.products.length;
-  const totalValue = STATE.products.reduce((a,p)=>a + p.stock*p.cost, 0);
-  document.getElementById('insightTotalValue').textContent = birr(Math.round(totalValue));
-}
 
 function renderInventory(){
-  renderInvCategoryOptions();
-  renderInventoryInsights();
-  const search = (document.getElementById('invSearch').value||'').trim().toLowerCase();
-  const cat = document.getElementById('invCategorySelect').value || 'ሁሉም';
+  const search = document.getElementById('invSearch').value.toLowerCase();
+  const catSel = document.getElementById('invCategorySelect');
+  
+  // Populate Categories Dropdown if not filled
+  const cats = ['ሁሉም', ...new Set(STATE.products.map(p=>p.cat))];
+  const curVal = catSel.value;
+  catSel.innerHTML = cats.map(c=>`<option value="${c}">${c}</option>`).join('');
+  if(cats.includes(curVal)) catSel.value = curVal;
 
-  let list = STATE.products;
-  if(STATE.invFilter==='low') list = list.filter(p=>p.stock<=5);
-  if(STATE.invFilter==='expiring') list = list.filter(p=>{
-    const d = daysUntil(p.expiry); return d!==null && d<=30;
+  const selCat = catSel.value;
+
+  // Filter Items
+  let list = STATE.products.filter(p=>{
+    const matchSearch = p.name.toLowerCase().includes(search) || p.sku.toLowerCase().includes(search);
+    const matchCat = selCat==='ሁሉም' || p.cat===selCat;
+    return matchSearch && matchCat;
   });
-  if(cat !== 'ሁሉም') list = list.filter(p=>p.cat===cat);
-  if(search) list = list.filter(p=>p.name.toLowerCase().includes(search) || (p.sku||'').toLowerCase().includes(search));
 
-  document.getElementById('inventoryList').innerHTML = list.map(p=>{
-    let pill = `<span class="pill ok">በቂ</span>`;
-    if(p.stock===0) pill = `<span class="pill out">ያለቀ</span>`;
-    else if(p.stock<=5) pill = `<span class="pill low">ዝቅተኛ</span>`;
-    // No default placeholder icon — only shows a photo/emoji the user actually set.
-    const photoHtml = p.emoji ? p.emoji : '';
+  if(STATE.invFilter === 'low'){
+    list = list.filter(p=>p.stock <= 10);
+  } else if(STATE.invFilter === 'expiring'){
+    list = list.filter(p=>p.expiring); // Naive flag for demo
+  }
+
+  // Analytics Insight Cards Calculation
+  const topSelling = STATE.products.slice(0, 3); // Naive Top 3 demo
+  document.getElementById('insightTopSelling').innerHTML = topSelling.map(p=>`
+    <div class="inv-insight-row">
+      <span class="ir-name">${p.emoji||'📦'} ${p.name}</span>
+      <span class="ir-meta green">${p.stock} ፍሬ ቀሪ</span>
+    </div>
+  `).join('');
+
+  const recent = STATE.products.slice(-3).reverse();
+  document.getElementById('insightRecentlyAdded').innerHTML = recent.map(p=>`
+    <div class="inv-insight-row">
+      <span class="ir-name">${p.name}</span>
+      <span class="ir-meta">${birr(p.price)}</span>
+    </div>
+  `).join('');
+
+  const slow = STATE.products.filter(p=>p.stock>50).slice(0,3);
+  document.getElementById('insightSlowMoving').innerHTML = slow.length ? slow.map(p=>`
+    <div class="inv-insight-row">
+      <span class="ir-name">${p.name}</span>
+      <span class="ir-meta amber">${p.stock} ፍሬ ተከማችቷል</span>
+    </div>
+  `).join('') : `<div class="inv-insight-empty">ምንም የቆየ እቃ የለም</div>`;
+
+  document.getElementById('insightTotalCount').textContent = STATE.products.length;
+  const totalVal = STATE.products.reduce((a,p)=>a + (p.cost*p.stock), 0);
+  document.getElementById('insightTotalValue').textContent = birr(totalVal);
+
+  // Render List
+  const container = document.getElementById('inventoryList');
+  if(!list.length){
+    container.innerHTML = `<p style="text-align:center;color:var(--text-mut);padding:20px;">ምንም ዕቃ አልተገኘም</p>`;
+    return;
+  }
+
+  container.innerHTML = list.map(p=>{
+    const badgeCls = p.stock===0 ? 'out' : (p.stock<=10 ? 'low' : 'ok');
+    const badgeTxt = p.stock===0 ? 'ያለቀ' : (p.stock<=10 ? 'ያነሰ' : 'በቂ');
     return `
-      <div class="inv-row" data-id="${p.id}">
+      <div class="inv-row" id="inv-row-${p.id}">
         <div class="inv-head" onclick="toggleInvRow('${p.id}')">
           <div class="inv-head-left">
-            <div class="inv-photo">${photoHtml}</div>
+            <div class="inv-photo">${p.emoji||'📦'}</div>
             <div class="inv-name-wrap">
-              <div class="inv-name">${p.name}${expiryBadgeHtml(p)}</div>
-              <div class="inv-sku-mini">${p.sku||''}</div>
+              <div class="inv-name">${p.name}</div>
+              <div class="inv-sku-mini">${p.sku} • ${p.cat}</div>
             </div>
           </div>
           <div class="inv-head-right">
-            <span class="inv-stock-badge">${p.stock}</span>
-            <span class="inv-chevron">▾</span>
+            <span class="pill ${badgeCls}">${badgeTxt} (${p.stock})</span>
+            <span class="inv-chevron">▼</span>
           </div>
         </div>
         <div class="inv-body">
           <div class="inv-body-grid">
-            <div><span class="ibl">ምድብ</span>${p.cat}</div>
-            <div><span class="ibl">ሁኔታ</span>${pill}</div>
-            <div><span class="ibl">ግዢ ዋጋ</span>${p.cost} ብር</div>
-            <div><span class="ibl">ሽያጭ ዋጋ</span>${p.price} ብር</div>
-            <div><span class="ibl">ኮድ (SKU)</span>${p.sku||'—'}</div>
+            <div><span class="ibl">የግዢ ዋጋ</span><b>${birr(p.cost)}</b></div>
+            <div><span class="ibl">የሽያጭ ዋጋ</span><b>${birr(p.price)}</b></div>
+            <div><span class="ibl">የተጠበቀ ትርፍ/ፍሬ</span><b style="color:var(--green-dark)">${birr(p.price - p.cost)}</b></div>
+            <div><span class="ibl">አጠቃላይ ካፒታል</span><b>${birr(p.cost * p.stock)}</b></div>
           </div>
           <div class="inv-body-actions">
-            <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openEditProduct('${p.id}')">✏️ አርም</button>
+            <button class="btn btn-ghost btn-sm" onclick="editProduct('${p.id}')">✏️ አርም</button>
+            <button class="btn btn-outline-red btn-sm" onclick="deleteProduct('${p.id}')">🗑️ አጥፋ</button>
           </div>
         </div>
-      </div>`;
-  }).join('') || `<p style="text-align:center;color:var(--text-mut);padding:24px 0;">ምንም ዕቃ አልተገኘም</p>`;
+      </div>
+    `;
+  }).join('');
 }
 
-function openEditProduct(id){
+function toggleInvRow(id){
+  const row = document.getElementById(`inv-row-${id}`);
+  if(row) row.classList.toggle('expanded');
+}
+
+function editProduct(id){
   const p = STATE.products.find(x=>x.id===id);
   if(!p) return;
   document.getElementById('epId').value = p.id;
   document.getElementById('epName').value = p.name;
-  document.getElementById('epSku').value = p.sku||'';
+  document.getElementById('epSku').value = p.sku;
   document.getElementById('epCat').value = p.cat;
   document.getElementById('epCost').value = p.cost;
   document.getElementById('epPrice').value = p.price;
   document.getElementById('epStock').value = p.stock;
   openModalEl('editProductModal');
 }
+
 async function saveEditedProduct(){
   const id = document.getElementById('epId').value;
   const p = STATE.products.find(x=>x.id===id);
   if(!p) return;
-  const name = document.getElementById('epName').value.trim();
-  if(!name){ toast('⚠️ የዕቃ ስም ያስፈልጋል'); return; }
-  p.name = name;
-  p.sku = document.getElementById('epSku').value.trim();
-  p.cat = document.getElementById('epCat').value.trim() || 'ሌላ';
-  p.cost = Number(document.getElementById('epCost').value)||0;
-  p.price = Number(document.getElementById('epPrice').value)||0;
-  p.stock = Number(document.getElementById('epStock').value)||0;
-  closeModal('editProductModal');
-  renderInventory(); renderCategoryTabs(); renderProductGrid(); renderDashboard();
+
+  p.name = document.getElementById('epName').value.trim() || p.name;
+  p.sku = document.getElementById('epSku').value.trim() || p.sku;
+  p.cat = document.getElementById('epCat').value.trim() || p.cat;
+  p.cost = parseFloat(document.getElementById('epCost').value) || p.cost;
+  p.price = parseFloat(document.getElementById('epPrice').value) || p.price;
+  p.stock = parseInt(document.getElementById('epStock').value) || 0;
+
   await persist();
-  toast('✅ ዕቃው ተስተካክሏል');
+  closeModal('editProductModal');
+  toast('የዕቃ መረጃ ተስተካክሏል');
+  refreshAll();
+}
+
+async function deleteProduct(id){
+  if(confirm('እርግጠኛ ነዎት ይህን ዕቃ ማጥፋት ይፈልጋሉ?')){
+    STATE.products = STATE.products.filter(p=>p.id!==id);
+    await persist();
+    toast('ዕቃው ተሰርዟል');
+    refreshAll();
+  }
+}
+
+async function saveProduct(){
+  const name = document.getElementById('pmName').value.trim();
+  const sku = document.getElementById('pmSku').value.trim() || ('SKU-'+Math.floor(Math.random()*1000));
+  const cat = document.getElementById('pmCat').value.trim() || 'ጠቅላላ';
+  const cost = parseFloat(document.getElementById('pmCost').value) || 0;
+  const price = parseFloat(document.getElementById('pmPrice').value) || 0;
+  const stock = parseInt(document.getElementById('pmStock').value) || 0;
+
+  if(!name){ toast('እባክዎ የዕቃ ስም ያስገቡ'); return; }
+
+  STATE.products.push({ id:'p'+Date.now(), name, sku, cat, cost, price, stock, emoji:'📦' });
+  await persist();
+  closeModal('productModal');
+  toast('አዲስ ዕቃ ተመዝግቧል');
+  refreshAll();
+}
+
+/* ===================== RECEIVE BATCH WIZARD ===================== */
+function resetWizard(){
+  WIZ = { totalExpense:0, itemCount:0, items:[] };
+  document.getElementById('rbPlate').value = '';
+  document.getElementById('rbDriver').value = '';
+  document.getElementById('rbTransportCost').value = '';
+  document.getElementById('rbLoadingCost').value = '';
+  document.getElementById('rbItemTypeCount').value = '';
+  document.getElementById('rbTotalExpenseShow').textContent = '0 ብር';
+  goToStep(1);
+}
+
+function goToStep(s){
+  document.querySelectorAll('.wz-step').forEach(st=>{
+    const stepNum = parseInt(st.dataset.s);
+    st.classList.toggle('active', stepNum === s);
+    st.classList.toggle('done', stepNum < s);
+  });
+  document.querySelectorAll('.wz-panel').forEach((p, idx)=>{
+    p.classList.toggle('active', (idx+1) === s);
+  });
+}
+
+function updateTotalExpense(){
+  const t = parseFloat(document.getElementById('rbTransportCost').value) || 0;
+  const l = parseFloat(document.getElementById('rbLoadingCost').value) || 0;
+  WIZ.totalExpense = t + l;
+  document.getElementById('rbTotalExpenseShow').textContent = birr(WIZ.totalExpense);
+}
+
+function goToStep2(){
+  updateTotalExpense();
+  const count = parseInt(document.getElementById('rbItemTypeCount').value) || 0;
+  if(count <= 0){ toast('እባክዎ የተለዩ እቃዎች ዓይነት ብዛት ያስገቡ'); return; }
+  
+  WIZ.itemCount = count;
+  document.getElementById('itemCountLabel').textContent = count;
+  
+  const container = document.getElementById('itemRowsContainer');
+  let html = '';
+  for(let i=0; i<count; i++){
+    html += `
+      <div class="item-row" data-idx="${i}">
+        <div class="item-row-head"><b>ዕቃ #${i+1}</b></div>
+        <div class="item-row-grid">
+          <div class="field ac-wrap">
+            <label>የዕቃ ስም</label>
+            <input type="text" class="ir-name" placeholder="ስም ይጻፉ ወይም ይምረጡ..." oninput="onItemNameInput(this, ${i})">
+            <div class="ac-list" id="ac-list-${i}"></div>
+          </div>
+          <div class="field"><label>ኮድ (SKU)</label><input type="text" class="ir-sku" placeholder="SKU-XXX"></div>
+          <div class="field"><label>አቅራቢ/ከማን</label><input type="text" class="ir-supplier" placeholder="አቅራቢ ስም"></div>
+          <div class="field"><label>ብዛት (Qty)</label><input type="number" class="ir-qty" placeholder="0"></div>
+          <div class="field"><label>የግዢ ዋጋ (መነሻ)</label><input type="number" class="ir-cost" placeholder="0"></div>
+          <div class="field"><label>የሽያጭ ዋጋ</label><input type="number" class="ir-price" placeholder="0"></div>
+        </div>
+      </div>
+    `;
+  }
+  container.innerHTML = html;
+  goToStep(2);
+}
+
+function onItemNameInput(inputEl, idx){
+  const val = inputEl.value.toLowerCase().trim();
+  const acList = document.getElementById(`ac-list-${idx}`);
+  if(!val){ acList.classList.remove('show'); return; }
+
+  const matches = STATE.products.filter(p=>p.name.toLowerCase().includes(val));
+  let html = matches.map(p=>`
+    <div class="ac-item" onclick="selectAcItem(${idx}, '${p.id}')">
+      <span>${p.name} <span class="ir-badge">ነባር ዕቃ</span></span>
+      <span class="ac-meta">${p.sku} • የግዢ፦ ${birr(p.cost)}</span>
+    </div>
+  `).join('');
+
+  html += `
+    <div class="ac-item ac-new" onclick="selectAcNew(${idx}, '${inputEl.value.trim()}')">
+      ➕ "+ ${inputEl.value.trim()}" እንደ አዲስ ዕቃ መዝግብ
+    </div>
+  `;
+
+  acList.innerHTML = html;
+  acList.classList.add('show');
+}
+
+function selectAcItem(idx, prodId){
+  const p = STATE.products.find(x=>x.id===prodId);
+  if(!p) return;
+  const row = document.querySelector(`.item-row[data-idx="${idx}"]`);
+  row.querySelector('.ir-name').value = p.name;
+  row.querySelector('.ir-sku').value = p.sku;
+  row.querySelector('.ir-cost').value = p.cost;
+  row.querySelector('.ir-price').value = p.price;
+  document.getElementById(`ac-list-${idx}`).classList.remove('show');
+}
+
+function selectAcNew(idx, name){
+  const row = document.querySelector(`.item-row[data-idx="${idx}"]`);
+  row.querySelector('.ir-name').value = name;
+  document.getElementById(`ac-list-${idx}`).classList.remove('show');
+}
+
+function computeAndGoToStep3(){
+  const rows = document.querySelectorAll('.item-row');
+  const items = [];
+  let totalQty = 0;
+
+  for(let i=0; i<rows.length; i++){
+    const r = rows[i];
+    const name = r.querySelector('.ir-name').value.trim();
+    const sku = r.querySelector('.ir-sku').value.trim() || ('SKU-'+Math.floor(Math.random()*1000));
+    const supplier = r.querySelector('.ir-supplier').value.trim() || 'ያልተገለጸ';
+    const qty = parseInt(r.querySelector('.ir-qty').value) || 0;
+    const baseCost = parseFloat(r.querySelector('.ir-cost').value) || 0;
+    const sellPrice = parseFloat(r.querySelector('.ir-price').value) || 0;
+
+    if(!name || qty<=0){ toast(`እባክዎ የዕቃ #${i+1} ስም እና ብዛት በትክክል ያስገቡ`); return; }
+
+    totalQty += qty;
+    items.push({ name, sku, supplier, qty, baseCost, sellPrice });
+  }
+
+  const perUnitExpense = totalQty > 0 ? (WIZ.totalExpense / totalQty) : 0;
+  let totalExpectedProfit = 0;
+
+  items.forEach(it=>{
+    it.addedCostPerUnit = perUnitExpense;
+    it.finalLandedCost = it.baseCost + perUnitExpense;
+    it.profitPerUnit = it.sellPrice - it.finalLandedCost;
+    totalExpectedProfit += (it.profitPerUnit * it.qty);
+  });
+
+  WIZ.items = items;
+  WIZ.totalQty = totalQty;
+  WIZ.perUnitExpense = perUnitExpense;
+  WIZ.totalExpectedProfit = totalExpectedProfit;
+
+  // Render Step 3
+  document.getElementById('sumPlate').textContent = document.getElementById('rbPlate').value.trim() || '—';
+  document.getElementById('sumDriver').textContent = document.getElementById('rbDriver').value.trim() || '—';
+  document.getElementById('sumTotalExpense').textContent = birr(WIZ.totalExpense);
+  document.getElementById('sumTotalQty').textContent = totalQty + ' ፍሬ';
+  document.getElementById('sumPerUnitExpense').textContent = '+' + birr(perUnitExpense.toFixed(2)) + ' /ፍሬ';
+  document.getElementById('rbTimestamp').textContent = new Date().toLocaleString('am-ET');
+
+  document.getElementById('summaryBody').innerHTML = items.map(it=>`
+    <tr>
+      <td><b>${it.name}</b></td>
+      <td>${it.sku}</td>
+      <td>${it.supplier}</td>
+      <td>${it.qty}</td>
+      <td>${birr(it.baseCost)}</td>
+      <td style="color:var(--amber)">+${birr(it.addedCostPerUnit.toFixed(2))}</td>
+      <td style="font-weight:800;color:var(--navy)">${birr(it.finalLandedCost.toFixed(2))}</td>
+      <td>${birr(it.sellPrice)}</td>
+      <td style="color:${it.profitPerUnit>=0?'var(--green-dark)':'var(--red)'};font-weight:700;">${birr(it.profitPerUnit.toFixed(2))}</td>
+    </tr>
+  `).join('');
+
+  document.getElementById('sumTotalProfit').textContent = birr(totalExpectedProfit.toFixed(2));
+  goToStep(3);
+}
+
+async function saveBatchRecord(){
+  const now = new Date();
+  const batchRecord = {
+    id: 'BAT-' + Date.now(),
+    plate: document.getElementById('rbPlate').value.trim(),
+    driver: document.getElementById('rbDriver').value.trim(),
+    transportCost: parseFloat(document.getElementById('rbTransportCost').value)||0,
+    loadingCost: parseFloat(document.getElementById('rbLoadingCost').value)||0,
+    totalExpense: WIZ.totalExpense,
+    totalQty: WIZ.totalQty,
+    perUnitExpense: WIZ.perUnitExpense,
+    items: WIZ.items,
+    timestamp: { am: now.toLocaleString('am-ET'), iso: now.toISOString() }
+  };
+
+  // Synchronize stock & product landed cost in catalog
+  WIZ.items.forEach(it=>{
+    let p = STATE.products.find(x=>x.sku===it.sku || x.name.toLowerCase()===it.name.toLowerCase());
+    if(p){
+      p.stock += it.qty;
+      p.cost = Math.round(it.finalLandedCost);
+      p.price = it.sellPrice;
+    } else {
+      STATE.products.push({
+        id: 'p' + Date.now() + Math.floor(Math.random()*100),
+        name: it.name,
+        sku: it.sku,
+        cat: 'አዲስ ጭነት',
+        cost: Math.round(it.finalLandedCost),
+        price: it.sellPrice,
+        stock: it.qty,
+        emoji: '🚚'
+      });
+    }
+  });
+
+  STATE.batches.unshift(batchRecord);
+  await persist();
+  toast('💾 የጭነት መዝገብ ተስፋፍቶ በስኬት ተቀምጧል!');
+  refreshAll();
+  setPage('batchhistory');
+}
+
+function printBatchReceipt(){
+  const prMeta = document.getElementById('prMeta');
+  prMeta.innerHTML = `
+    <b>ታርጋ፦</b> ${document.getElementById('rbPlate').value || '—'} | 
+    <b>አራጋፊ፦</b> ${document.getElementById('rbDriver').value || '—'} | 
+    <b>ቀን፦</b> ${new Date().toLocaleString('am-ET')}
+  `;
+  document.getElementById('prBody').innerHTML = document.getElementById('summaryBody').innerHTML;
+  window.print();
+}
+
+function shareBatchReceipt(){
+  const text = `🚚 *Gurage POS — የእቃ ገቢ መመዝገቢያ ደረሰኝ*\nታርጋ፦ ${document.getElementById('rbPlate').value}\nጭነት ወጪ፦ ${birr(WIZ.totalExpense)}\nጠቅላላ እቃ፦ ${WIZ.totalQty} ፍሬ\nየተጠበቀ ትርፍ፦ ${birr(WIZ.totalExpectedProfit)}`;
+  if(navigator.share){
+    navigator.share({ title: 'የእቃ ገቢ ደረሰኝ', text: text }).catch(()=>TextShareFallback(text));
+  } else { TextShareFallback(text); }
+}
+
+function TextShareFallback(text){
+  navigator.clipboard.writeText(text);
+  toast('📋 ደረሰኙ ወደ Clipboard ኮፒ ሆኗል! Telegram/WhatsApp ላይ Paste ማድረግ ይችላሉ።');
+}
+
+/* ===================== BATCH HISTORY ===================== */
+function renderBatchHistory(){
+  const container = document.getElementById('batchHistoryList');
+  if(!STATE.batches || !STATE.batches.length){
+    container.innerHTML = `<div class="panel" style="text-align:center;color:var(--text-mut);">ምንም የተመዘገበ የጭነት ታሪክ የለም</div>`;
+    return;
+  }
+
+  container.innerHTML = STATE.batches.map(b=>`
+    <div class="batch-card">
+      <div class="batch-card-head">
+        <div>
+          <div class="bc-title">🚚 መኪና፦ ${b.plate || 'ያልተጠቀሰ'} (${b.driver || 'አራጋፊ አልተጻፈም'})</div>
+          <div class="bc-sub">📅 ${b.timestamp.am}</div>
+        </div>
+        <div class="batch-card-actions">
+          <button onclick="editBatch('${b.id}')">✏️ አርም</button>
+          <button style="color:var(--red)" onclick="deleteBatch('${b.id}')">🗑️ አጥፋ</button>
+        </div>
+      </div>
+      <div class="batch-card-stats">
+        <span>ጭነት ወጪ፦ <b>${birr(b.totalExpense)}</b></span>
+        <span>የእቃ ብዛት፦ <b>${b.totalQty} ፍሬ</b></span>
+        <span>የተደመረ ወጪ፦ <b style="color:var(--amber)">+${birr(b.perUnitExpense.toFixed(2))}/ፍሬ</b></span>
+      </div>
+      <div class="table-container">
+        <table>
+          <thead><tr><th>ዕቃ</th><th>ኮድ</th><th>ከማን</th><th>ብዛት</th><th>የቆመበት ዋጋ</th><th>ሽያጭ ዋጋ</th></tr></thead>
+          <tbody>
+            ${b.items.map(it=>`
+              <tr>
+                <td><b>${it.name}</b></td>
+                <td>${it.sku}</td>
+                <td>${it.supplier}</td>
+                <td>${it.qty}</td>
+                <td>${birr(it.finalLandedCost.toFixed(2))}</td>
+                <td>${birr(it.sellPrice)}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `).join('');
+}
+
+function editBatch(id){
+  const b = STATE.batches.find(x=>x.id===id);
+  if(!b) return;
+
+  document.getElementById('ebId').value = b.id;
+  document.getElementById('ebPlate').value = b.plate;
+  document.getElementById('ebDriver').value = b.driver;
+  document.getElementById('ebTransportCost').value = b.transportCost;
+  document.getElementById('ebLoadingCost').value = b.loadingCost;
+
+  const container = document.getElementById('ebItemsContainer');
+  container.innerHTML = b.items.map((it, idx)=>`
+    <div class="edit-item-row" data-idx="${idx}">
+      <div class="field"><label>ስም</label><input type="text" class="ebi-name" value="${it.name}"></div>
+      <div class="field"><label>ኮድ</label><input type="text" class="ebi-sku" value="${it.sku}"></div>
+      <div class="field"><label>ከማን</label><input type="text" class="ebi-supplier" value="${it.supplier}"></div>
+      <div class="field"><label>ብዛት</label><input type="number" class="ebi-qty" value="${it.qty}" disabled style="opacity:.6"></div>
+      <div class="field"><label>መነሻ ዋጋ</label><input type="number" class="ebi-cost" value="${it.baseCost}"></div>
+      <div class="field"><label>ሽያጭ ዋጋ</label><input type="number" class="ebi-price" value="${it.sellPrice}"></div>
+    </div>
+  `).join('');
+
+  openModalEl('editBatchModal');
+}
+
+async function saveEditedBatch(){
+  const id = document.getElementById('ebId').value;
+  const b = STATE.batches.find(x=>x.id===id);
+  if(!b) return;
+
+  b.plate = document.getElementById('ebPlate').value.trim();
+  b.driver = document.getElementById('ebDriver').value.trim();
+  b.transportCost = parseFloat(document.getElementById('ebTransportCost').value)||0;
+  b.loadingCost = parseFloat(document.getElementById('ebLoadingCost').value)||0;
+  b.totalExpense = b.transportCost + b.loadingCost;
+  b.perUnitExpense = b.totalQty > 0 ? (b.totalExpense / b.totalQty) : 0;
+
+  const itemRows = document.querySelectorAll('.edit-item-row');
+  itemRows.forEach((r, idx)=>{
+    const it = b.items[idx];
+    if(it){
+      it.name = r.querySelector('.ebi-name').value.trim();
+      it.sku = r.querySelector('.ebi-sku').value.trim();
+      it.supplier = r.querySelector('.ebi-supplier').value.trim();
+      it.baseCost = parseFloat(r.querySelector('.ebi-cost').value)||0;
+      it.sellPrice = parseFloat(r.querySelector('.ebi-price').value)||0;
+      it.addedCostPerUnit = b.perUnitExpense;
+      it.finalLandedCost = it.baseCost + b.perUnitExpense;
+      it.profitPerUnit = it.sellPrice - it.finalLandedCost;
+    }
+  });
+
+  await persist();
+  closeModal('editBatchModal');
+  toast('የጭነት መዝገብ ተስተካክሏል');
+  renderBatchHistory();
+}
+
+async function deleteBatch(id){
+  if(confirm('እርግጠኛ ነዎት ይህን የጭነት መዝገብ ማጥፋት ይፈልጋሉ?')){
+    STATE.batches = STATE.batches.filter(b=>b.id!==id);
+    await persist();
+    toast('የጭነት መዝገብ ተሰርዟል');
+    renderBatchHistory();
+  }
 }
 
 /* ===================== EMPLOYEES ===================== */
 function renderEmployees(){
-  document.getElementById('employeesBody').innerHTML = STATE.employees.map(e=>`
-    <tr><td>${e.name}</td><td>${e.phone}</td><td>${e.role}</td><td>${birr(e.salary)}</td><td>${birr(e.todaySales||0)}</td></tr>
+  const body = document.getElementById('employeesBody');
+  body.innerHTML = STATE.employees.map(e=>`
+    <tr>
+      <td><b>${e.name}</b></td>
+      <td>${e.phone}</td>
+      <td><span class="pill ok">${e.role}</span></td>
+      <td>${birr(e.salary)}</td>
+      <td style="color:var(--green-dark);font-weight:700;">${birr(e.todaySales)}</td>
+    </tr>
   `).join('');
+}
+
+function openEmployeeModal(){ openModalEl('employeeModal'); }
+async function saveEmployee(){
+  const name = document.getElementById('emName').value.trim();
+  const phone = document.getElementById('emPhone').value.trim();
+  const role = document.getElementById('emRole').value;
+  const salary = parseFloat(document.getElementById('emSalary').value)||0;
+
+  if(!name){ toast('እባክዎ የሰራተኛ ስም ያስገቡ'); return; }
+
+  STATE.employees.push({ id:'e'+Date.now(), name, phone, role, salary, todaySales:0 });
+  await persist();
+  closeModal('employeeModal');
+  toast('አዲስ ሰራተኛ ተመዝግቧል');
+  renderEmployees();
 }
 
 /* ===================== FINANCE ===================== */
 function renderFinance(){
-  const income = STATE.sales.reduce((a,s)=>a+s.total,0);
-  const expense = STATE.expenses.reduce((a,e)=>a+e.amount,0);
-  document.getElementById('finIncome').textContent = birr(income);
-  document.getElementById('finExpense').textContent = birr(expense);
-  document.getElementById('finNet').textContent = birr(income-expense);
+  const inc = STATE.sales.reduce((a,s)=>a+s.total,0);
+  const exp = STATE.expenses.reduce((a,e)=>a+e.amount,0);
+  document.getElementById('finIncome').textContent = birr(inc);
+  document.getElementById('finExpense').textContent = birr(exp);
+  document.getElementById('finNet').textContent = birr(inc - exp);
+
   document.getElementById('debtBody').innerHTML = STATE.debts.map(d=>`
-    <tr><td>${d.customer}</td><td>${birr(d.amount)}</td><td>${d.date}</td><td><span class="pill low">${d.status}</span></td></tr>
+    <tr>
+      <td><b>${d.customer}</b></td>
+      <td style="color:var(--red);font-weight:700;">${birr(d.amount)}</td>
+      <td>${d.date}</td>
+      <td><span class="pill out">${d.status}</span></td>
+    </tr>
   `).join('');
+
   document.getElementById('expenseBody').innerHTML = STATE.expenses.map(e=>`
-    <tr><td>${e.type}</td><td>${birr(e.amount)}</td><td>${e.date}</td><td>${e.method}</td></tr>
+    <tr>
+      <td><b>${e.type}</b></td>
+      <td>${birr(e.amount)}</td>
+      <td>${e.date}</td>
+      <td>${e.method}</td>
+    </tr>
   `).join('');
 }
 
-/* ===================== MODALS: SAVE ===================== */
-function openProductModal(){ openModalEl('productModal'); }
-async function saveProduct(){
-  const name = document.getElementById('pmName').value.trim();
-  if(!name){ toast('⚠️ የዕቃ ስም ያስፈልጋል'); return; }
-  STATE.products.push({
-    id:'p'+Date.now(), name,
-    sku: document.getElementById('pmSku').value.trim(),
-    cat: document.getElementById('pmCat').value.trim() || 'ሌላ',
-    cost: Number(document.getElementById('pmCost').value)||0,
-    price: Number(document.getElementById('pmPrice').value)||0,
-    stock: Number(document.getElementById('pmStock').value)||0,
-    emoji:'',   // no default placeholder photo — stays blank until the user uploads one
-    createdAt: new Date().toISOString()
-  });
-  ['pmName','pmSku','pmCat','pmCost','pmPrice','pmStock'].forEach(id=>document.getElementById(id).value='');
-  closeModal('productModal');
-  renderInventory(); renderCategoryTabs(); renderProductGrid(); renderDashboard();
-  await persist();
-  toast('✅ ዕቃ ተመዝግቧል');
-}
-function openEmployeeModal(){ openModalEl('employeeModal'); }
-async function saveEmployee(){
-  const name = document.getElementById('emName').value.trim();
-  if(!name){ toast('⚠️ ስም ያስፈልጋል'); return; }
-  STATE.employees.push({
-    id:'e'+Date.now(), name,
-    phone: document.getElementById('emPhone').value.trim(),
-    role: document.getElementById('emRole').value,
-    salary: Number(document.getElementById('emSalary').value)||0,
-    todaySales:0
-  });
-  ['emName','emPhone','emSalary'].forEach(id=>document.getElementById(id).value='');
-  closeModal('employeeModal');
-  renderEmployees();
-  await persist();
-  toast('✅ ሰራተኛ ተመዝግቧል');
-}
 function openExpenseModal(){ openModalEl('expenseModal'); }
 async function saveExpense(){
-  const amount = Number(document.getElementById('exAmount').value)||0;
-  if(amount<=0){ toast('⚠️ መጠን ያስፈልጋል'); return; }
-  STATE.expenses.unshift({
-    type: document.getElementById('exType').value, amount,
-    date: new Date().toISOString().slice(0,10),
-    method: document.getElementById('exMethod').value
-  });
-  document.getElementById('exAmount').value='';
+  const type = document.getElementById('exType').value;
+  const amount = parseFloat(document.getElementById('exAmount').value)||0;
+  const method = document.getElementById('exMethod').value;
+
+  if(amount<=0){ toast('እባክዎ ትክክለኛ የወጪ መጠን ያስገቡ'); return; }
+
+  STATE.expenses.unshift({ type, amount, method, date: new Date().toISOString().slice(0,10) });
+  await persist();
   closeModal('expenseModal');
+  toast('ወጪ ተመዝግቧል');
   renderFinance();
-  await persist();
-  toast('✅ ወጪ ተመዝግቧል');
 }
 
-function openCapitalModal(){
-  document.getElementById('capitalInput').value = STATE.capital || 0;
-  openModalEl('capitalModal');
-}
-async function saveCapital(){
-  const val = Number(document.getElementById('capitalInput').value);
-  if(isNaN(val) || val < 0){ toast('⚠️ ትክክለኛ መጠን ያስገቡ'); return; }
-  STATE.capital = val;
-  closeModal('capitalModal');
-  renderDashboard();
-  await persist();
-  toast('✅ ካፒታል ተስተካክሏል');
+/* ===================== REPORTS ===================== */
+function renderReportChart(){
+  const ctx = document.getElementById('reportChart')?.getContext('2d');
+  if(!ctx) return;
+  if(reportChartRef) reportChartRef.destroy();
+
+  reportChartRef = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: ['ሳምንት 1', 'ሳምንት 2', 'ሳምንት 3', 'ሳምንት 4'],
+      datasets: [{ label: 'ወርሃዊ ሽያጭ', data: [45000, 52000, 61000, 78000], backgroundColor: '#02BE63', borderRadius: 6 }]
+    },
+    options: { responsive: true }
+  });
+
+  document.getElementById('allSalesBody').innerHTML = STATE.sales.map(s=>`
+    <tr>
+      <td><b>${s.id}</b></td>
+      <td>${s.time}</td>
+      <td>${s.branch==='addis'?'አዲስ አበባ':'አዳማ'}</td>
+      <td>${s.method}</td>
+      <td style="font-weight:700;color:var(--green-dark)">${birr(s.total)}</td>
+    </tr>
+  `).join('');
 }
 
-/* ===================== SETTINGS ===================== */
-async function saveSettings(){
-  const s = {
-    dark: document.documentElement.classList.contains('dark'),
-    font: document.documentElement.style.getPropertyValue('--font-base') || '16px',
-    navy: document.documentElement.style.getPropertyValue('--navy') || '#1E3A8A',
-  };
-  await storageSet('gurage-pos-settings', JSON.stringify(s));
+function exportCsv(){
+  let csv = 'ID,Time,Branch,Method,Total\n';
+  STATE.sales.forEach(s=>{ csv += `${s.id},${s.time},${s.branch},${s.method},${s.total}\n`; });
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'sales_report.csv'; a.click();
+  toast('📊 Excel/CSV ፋይል ተወርዷል');
 }
-async function loadSettings(){
-  try{
-    const res = await storageGet('gurage-pos-settings');
-    if(!res || !res.value) return;
-    const s = JSON.parse(res.value);
-    if(s.dark){ document.documentElement.classList.add('dark'); document.getElementById('darkSwitch').classList.add('on'); }
-    if(s.font){
-      document.documentElement.style.setProperty('--font-base', s.font);
-      document.querySelectorAll('#fontSeg button').forEach(b=>b.classList.toggle('active', b.dataset.s===s.font));
-    }
-    if(s.navy){
-      document.documentElement.style.setProperty('--navy', s.navy);
-      document.documentElement.style.setProperty('--navy-dark', s.navy);
-      document.querySelectorAll('.swatch').forEach(sw=>sw.classList.toggle('selected', sw.dataset.c===s.navy));
-    }
-  }catch(e){ /* ignore */ }
+
+/* ===================== SUBSCRIPTION & LOCK SCREEN ===================== */
+async function ensureSubscription(){
+  if(!STATE.subscription){
+    const now = new Date();
+    const expiry = new Date();
+    expiry.setDate(now.getDate() + 30);
+    STATE.subscription = { status: 'trial', expiresAt: expiry.toISOString() };
+    await persist();
+  }
 }
+
+function checkSubscriptionStatus(){
+  if(!STATE.subscription) return;
+  const now = new Date();
+  const exp = new Date(STATE.subscription.expiresAt);
+  const diffDays = Math.ceil((exp - now) / (1000 * 60 * 60 * 24));
+
+  const banner = document.getElementById('trialBanner');
+  const lock = document.getElementById('lockScreen');
+
+  if(diffDays <= 0){
+    STATE.subscription.status = 'expired';
+    lock.classList.add('show');
+    banner.classList.remove('show');
+  } else {
+    lock.classList.remove('show');
+    if(STATE.subscription.status === 'trial'){
+      banner.innerHTML = `🎁 ነጻ የ30 ቀን ሙከራ አየር ላይ ይገኛል — <b>${diffDays} ቀናት ቀርተዋል</b> <button onclick="setPage('pricing')">አሁን ፓኬጅ ይምረጡ</button>`;
+      banner.classList.add('show');
+    } else {
+      banner.classList.remove('show');
+    }
+  }
+}
+
+function renderSubscriptionUI(){
+  checkSubscriptionStatus();
+}
+
+function goToPricingFromLock(){
+  document.getElementById('lockScreen').classList.remove('show');
+  setPage('pricing');
+}
+
+function simulatePaymentConfirm(){
+  toast('✅ የክፍያ ማረጋገጫ ተልኳል! በአጭር ጊዜ ውስጥ ይረጋገጣል።');
+}
+
+/* ===================== SETTINGS & THEME ===================== */
+function setViewMode(m){
+  document.body.classList.remove('force-mobile', 'force-desktop');
+  document.querySelectorAll('.vm-btn').forEach(b=>b.classList.remove('active'));
+  if(m==='mobile'){ document.body.classList.add('force-mobile'); document.getElementById('mobileViewBtn').classList.add('active'); }
+  else if(m==='desktop'){ document.body.classList.add('force-desktop'); document.getElementById('desktopViewBtn').classList.add('active'); }
+  else { document.getElementById('autoViewBtn').classList.add('active'); }
+  toast('የእይታ ሁኔታ ተቀይሯል');
+}
+
 function toggleDark(){
-  document.documentElement.classList.toggle('dark');
-  document.getElementById('darkSwitch').classList.toggle('on');
-  saveSettings();
+  const dark = document.documentElement.classList.toggle('dark');
+  document.getElementById('darkSwitch').classList.toggle('on', dark);
+  toast(dark ? '🌙 Dark mode በርቷል' : '☀️ Light mode በርቷል');
 }
-function setFontSize(size, btn){
-  document.documentElement.style.setProperty('--font-base', size);
+
+function setFontSize(sz, btn){
+  document.documentElement.style.setProperty('--font-base', sz);
   document.querySelectorAll('#fontSeg button').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
-  saveSettings();
-}
-document.getElementById('themeSwatches').addEventListener('click',(e)=>{
-  const sw = e.target.closest('.swatch'); if(!sw) return;
-  document.querySelectorAll('.swatch').forEach(s=>s.classList.remove('selected'));
-  sw.classList.add('selected');
-  document.documentElement.style.setProperty('--navy', sw.dataset.c);
-  document.documentElement.style.setProperty('--navy-dark', sw.dataset.c);
-  saveSettings();
-});
-async function resetData(){
-  STATE.products = JSON.parse(JSON.stringify(seedProducts));
-  STATE.employees = JSON.parse(JSON.stringify(seedEmployees));
-  STATE.sales = seedSales();
-  STATE.expenses = JSON.parse(JSON.stringify(seedExpenses));
-  STATE.debts = JSON.parse(JSON.stringify(seedDebts));
-  STATE.batches = [];
-  STATE.capital = 1000000;
-  await persist();
-  refreshAll();
-  toast('🔄 ናሙና መረጃ ዳግም ተጀምሯል');
 }
 
-/* ==============
+document.querySelectorAll('.swatch').forEach(s=>{
+  s.addEventListener('click', ()=>{
+    document.querySelectorAll('.swatch').forEach(x=>x.classList.remove('selected'));
+    s.classList.add('selected');
+    document.documentElement.style.setProperty('--navy', s.dataset.c);
+    toast('ዋና ቀለም ተቀይሯል');
+  });
+});
+
+async function resetData(){
+  if(confirm('እርግጠኛ ነዎት ሁሉንም ናሙና መረጃዎች ወደ ነበሩበት መመለስ ይፈልጋሉ?')){
+    STATE.products = JSON.parse(JSON.stringify(seedProducts));
+    STATE.employees = JSON.parse(JSON.stringify(seedEmployees));
+    STATE.sales = seedSales();
+    STATE.expenses = JSON.parse(JSON.stringify(seedExpenses));
+    STATE.debts = JSON.parse(JSON.stringify(seedDebts));
+    STATE.batches = [];
+    STATE.capital = 1000000;
+    await persist();
+    toast('መረጃዎች ወደ ነበሩበት ተመልሰዋል');
+    refreshAll();
+  }
+}
+
+/* ===================== ADMIN DASHBOARD ===================== */
+function renderAdminDashboard(){
+  document.getElementById('admKpiUsers').textContent = '1,240';
+  document.getElementById('admKpiRevenue').textContent = birr(372000);
+  document.getElementById('admKpiExpiring').textContent = '14';
+  document.getElementById('admKpiLocked').textContent = '3';
+
+  const ctx = document.getElementById('adminRevenueChart')?.getContext('2d');
+  if(ctx){
+    new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: ['ጃንዩወሪ', 'ፌብሩወሪ', 'ማርች', 'ኤፕሪል', 'ሜይ', 'ጁን', 'ጁላይ'],
+        datasets: [{ label: 'ወርሃዊ ገቢ (ብር)', data: [120000, 150000, 180000, 220000, 290000, 310000, 372000], borderColor: '#1E3A8A', backgroundColor: 'rgba(30,58,138,0.1)', fill: true }]
+      },
+      options: { responsive: true }
+    });
+  }
+
+  const usersDemo = [
+    { name: 'አበበ ሱቅ (0911223344)', city: 'አዲስ አበባ', lastLogin: 'ከ10 ደቂቃ በፊት', sub: 'ነጻ ሙከራ (5 ቀን ቀረ)', status: 'active' },
+    { name: 'ሰላም ሱፐርማርኬት (0922114455)', city: 'አዳማ', lastLogin: 'ትላንት', sub: 'መካከለኛ (Paid)', status: 'active' },
+    { name: 'መሀመድ ጅምላ (0933556677)', city: 'ቡሌ ሆራ', lastLogin: 'ከ3 ቀን በፊት', sub: 'ከፍተኛ (Paid)', status: 'active' },
+    { name: 'ተስፋዬ ኤሌክትሮኒክስ (0944889900)', city: 'ሐዋሳ', lastLogin: 'ከ2 ሳምንት በፊት', sub: 'ያለቀበት (Expired)', status: 'locked' },
+  ];
+
+  document.getElementById('adminUsersBody').innerHTML = usersDemo.map(u=>`
+    <tr>
+      <td><b>${u.name}</b></td>
+      <td>${u.city}</td>
+      <td>${u.lastLogin}</td>
+      <td><span class="pill ${u.status==='active'?'ok':'out'}">${u.sub}</span></td>
+      <td>${u.status==='active'?'🟢 ንቁ':'🔴 የተቆለፈ'}</td>
+      <td><button class="btn btn-ghost btn-sm" onclick="toast('የተጠቃሚ መረጃ ማስተካከያ ይከፈታል')">አርም</button></td>
+    </tr>
+  `).join('');
+}
+
+/* ===================== REFRESH ALL ===================== */
+function refreshAll(){
+  renderDashboard();
+  renderProductGrid();
+  renderInventory();
+  renderEmployees();
+  renderFinance();
+  renderSubscriptionUI();
+}
+
+/* ===================== INIT ===================== */
+window.addEventListener('DOMContentLoaded', async ()=>{
+  await loadState();
+  
+  // Hide Splash Screen
+  setTimeout(()=>{
+    const splash = document.getElementById('splash');
+    if(splash) splash.classList.add('hide');
+  }, 800);
+
+  // Online / Offline detection
+  window.addEventListener('online', ()=>{
+    const bar = document.getElementById('offlineBar');
+    bar.textContent = '✅ ኢንተርኔት ተመልሷል! መረጃዎች ተያይዘዋል (Synced)';
+    bar.classList.add('show', 'synced');
+    setTimeout(()=>bar.classList.remove('show'), 3000);
+  });
+  window.addEventListener('offline', ()=>{
+    const bar = document.getElementById('offlineBar');
+    bar.textContent = '⚠️ ኢንተርኔት የለም፤ መረጃው በስልኩ ላይ እየተጠበቀ ነው (Offline Mode)';
+    bar.classList.remove('synced');
+    bar.classList.add('show');
+  });
+
+  // Register PWA Service Worker (if available)
+  if('serviceWorker' in navigator){
+    navigator.serviceWorker.register('sw.js').catch(()=>/* silent */{});
+  }
+});
+</script>
+</body>
+</html>
+
+```
