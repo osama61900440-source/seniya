@@ -428,30 +428,36 @@ function freshLoanCenter() {
   };
 }
 
+function normalizeData(d) {
+  if (!Array.isArray(d.allocations)) d.allocations = freshAllocations();
+  if (!Array.isArray(d.purchases)) d.purchases = [];
+  if (!Array.isArray(d.damages)) d.damages = [];
+  if (typeof d.baseCapitalCents !== "number") d.baseCapitalCents = 0;
+  if (typeof d.capitalGoalMonthlyCents !== "number" || d.capitalGoalMonthlyCents <= 0) d.capitalGoalMonthlyCents = GOAL_MONTHLY_CENTS_DEFAULT;
+  if (!d.profile || typeof d.profile !== "object") d.profile = freshProfile();
+  else { var fp = freshProfile(); for (var pk in fp) if (!(pk in d.profile)) d.profile[pk] = fp[pk]; }
+  if (!d.loanCenter || typeof d.loanCenter !== "object") d.loanCenter = freshLoanCenter();
+  else {
+    var fl = freshLoanCenter();
+    if (typeof d.loanCenter.requestedAmountCents !== "number") d.loanCenter.requestedAmountCents = 0;
+    if (!Array.isArray(d.loanCenter.usageAllocations) || d.loanCenter.usageAllocations.length === 0) d.loanCenter.usageAllocations = fl.usageAllocations;
+    if (!Array.isArray(d.loanCenter.proformaInvoices)) d.loanCenter.proformaInvoices = [];
+    if (!Array.isArray(d.loanCenter.cashFlowProjection)) d.loanCenter.cashFlowProjection = [];
+    if (!Array.isArray(d.loanCenter.suppliers)) d.loanCenter.suppliers = [];
+    if (typeof d.loanCenter.marketAnalysis !== "string") d.loanCenter.marketAnalysis = "";
+  }
+  if (!Array.isArray(d.items)) d.items = [];
+  if (!Array.isArray(d.sales)) d.sales = [];
+  if (!Array.isArray(d.expenses)) d.expenses = [];
+  return d;
+}
 function loadData() {
   try {
     var v = localStorage.getItem(STORAGE_KEY);
     if (v) {
       var d = JSON.parse(v);
       if (d && Array.isArray(d.items) && Array.isArray(d.sales) && Array.isArray(d.expenses)) {
-        if (!Array.isArray(d.allocations)) d.allocations = freshAllocations();
-        if (!Array.isArray(d.purchases)) d.purchases = [];
-        if (!Array.isArray(d.damages)) d.damages = [];
-        if (typeof d.baseCapitalCents !== "number") d.baseCapitalCents = 0;
-        if (typeof d.capitalGoalMonthlyCents !== "number" || d.capitalGoalMonthlyCents <= 0) d.capitalGoalMonthlyCents = GOAL_MONTHLY_CENTS_DEFAULT;
-        if (!d.profile || typeof d.profile !== "object") d.profile = freshProfile();
-        else { var fp = freshProfile(); for (var pk in fp) if (!(pk in d.profile)) d.profile[pk] = fp[pk]; }
-        if (!d.loanCenter || typeof d.loanCenter !== "object") d.loanCenter = freshLoanCenter();
-        else {
-          var fl = freshLoanCenter();
-          if (typeof d.loanCenter.requestedAmountCents !== "number") d.loanCenter.requestedAmountCents = 0;
-          if (!Array.isArray(d.loanCenter.usageAllocations) || d.loanCenter.usageAllocations.length === 0) d.loanCenter.usageAllocations = fl.usageAllocations;
-          if (!Array.isArray(d.loanCenter.proformaInvoices)) d.loanCenter.proformaInvoices = [];
-          if (!Array.isArray(d.loanCenter.cashFlowProjection)) d.loanCenter.cashFlowProjection = [];
-          if (!Array.isArray(d.loanCenter.suppliers)) d.loanCenter.suppliers = [];
-          if (typeof d.loanCenter.marketAnalysis !== "string") d.loanCenter.marketAnalysis = "";
-        }
-        return d;
+        return normalizeData(d);
       }
     }
   } catch (e) {}
@@ -1274,16 +1280,24 @@ function renderItems(container) {
   if (state.itemsView === "damage") { renderDamageLog(container); return; }
 
   container.appendChild(el("div", { class: "eyebrow section" }, "📦 አዲስ ዕቃ መጨመሪያ እና የነበሩት ዝርዝር"));
+
+  var goPurchaseBtn = el("button", { class: "btn btn-primary", style: { width: "100%", background: "#0f766e" } }, "🚚 ታርጋ/ትራንስፖርት ወጪ ጨምሮ በጅምላ ዕቃ ግባ");
+  goPurchaseBtn.addEventListener("click", function () { state.tab = "purchase"; renderApp(); });
+  container.appendChild(el("div", { class: "card section", style: { borderColor: "#0f766e", background: "#f0fdfa" } }, [
+    el("div", { class: "helpmsg", style: { marginBottom: "8px" } }, "ከመኪና/ጭነት ጋር የመጣ ዕቃ ከሆነ (ታርጋ፣ አጓጓዥ፣ ትራንስፖርት ወጪ ያለው) ወደዚህ ይሂዱ — ወጪው በራስ-ሰር በዕቃዎቹ ላይ ተካፍሎ ይሰላል።"),
+    goPurchaseBtn
+  ]));
+  container.appendChild(el("div", { class: "eyebrow mb2" }, "ወይም ቀላል ነጠላ ዕቃ (ያለ ትራንስፖርት ወጪ) በቀጥታ ጨምር"));
   var nameInput = el("input", { class: "input", placeholder: "የዕቃ ስም" });
-  var costInput = el("input", { class: "input", type: "number", step: "0.01", placeholder: "የገዙበት ዋጋ (ወጪ)" });
-  var sellInput = el("input", { class: "input", type: "number", step: "0.01", placeholder: "የመሸጫ ዋጋ" });
-  var stockInput = el("input", { class: "input", type: "number", placeholder: "የመጀመሪያ ስቶክ (ብዛት)" });
+  var costInput = numberInput("የገዙበት ዋጋ (ወጪ)", true);
+  var sellInput = numberInput("የመሸጫ ዋጋ", true);
+  var stockInput = numberInput("የመጀመሪያ ስቶክ (ብዛት)", false);
   var errBox = el("div", { class: "errmsg" });
   var addBtn = el("button", { class: "btn btn-primary" }, "ዕቃ ጨምር +");
   addBtn.addEventListener("click", guarded(function () {
     var name = nameInput.value.trim();
     if (!name || !sellInput.value || !stockInput.value) { errBox.textContent = "እባክዎ የዕቃ ስም፣ የመሸጫ ዋጋ እና ስቶክ ይሙሉ"; return; }
-    setData(function (d) { d.items.push({ id: uid(), name: name, costPriceCents: toCents(costInput.value || 0), sellPriceCents: toCents(sellInput.value), openingStock: Number(stockInput.value) || 0, dateAdded: todayISO(), createdAt: Date.now() }); return d; });
+    setData(function (d) { d.items.push({ id: uid(), name: name, costPriceCents: toCents(costInput.value || 0), sellPriceCents: toCents(sellInput.value), openingStock: numVal(stockInput.value) || 0, dateAdded: todayISO(), createdAt: Date.now() }); return d; });
     showToast("አዲስ ዕቃ ተጨምሯል");
     nameInput.value = ""; costInput.value = ""; sellInput.value = ""; stockInput.value = "";
   }));
@@ -1661,59 +1675,137 @@ function computePurchaseLine(row, totalQty, totalCostCents) {
 
 function renderPurchase(container) {
   container.appendChild(el("div", { class: "eyebrow section" }, "🚚 አዲስ ግዢ / ጭነት መዝግብ"));
-  container.appendChild(el("div", { class: "helpmsg section" }, "ደረጃ 1 → 2 → 3 → 4ን ይሙሉ፤ ወጪ እና የቆመበት ዋጋ ራሱ በራስ-ሰር ይሰላል።"));
+
+  var currentStep = 1;
+  var STEP_LABELS = ["ጭነት መረጃ", "የዕቃ ዝርዝር", "ማጠቃለያ"];
+  var stepCircles = [];
+  var stepBar = el("div", { class: "flex items-center justify-between section", style: { padding: "0 6px" } });
+  STEP_LABELS.forEach(function (label, idx) {
+    var n = idx + 1;
+    var circle = el("div", { style: { width: "28px", height: "28px", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "800", fontSize: "13px", color: "#fff", background: "#cbd5e1", margin: "0 auto 4px" } }, String(n));
+    var col = el("div", { style: { flex: "1", textAlign: "center" } }, [circle, el("div", { style: { fontSize: "10.5px", color: "#64748b", fontWeight: "700" } }, label)]);
+    stepCircles.push(circle);
+    stepBar.appendChild(col);
+    if (n < STEP_LABELS.length) stepBar.appendChild(el("div", { style: { flex: "0.4", height: "2px", background: "#e2e8f0", marginTop: "-16px" } }));
+  });
+  container.appendChild(stepBar);
+
+  var page1 = el("div", {}), page2 = el("div", {}), page3 = el("div", {});
+  container.appendChild(page1); container.appendChild(page2); container.appendChild(page3);
+
+  function showStep(n) {
+    currentStep = n;
+    page1.style.display = n === 1 ? "" : "none";
+    page2.style.display = n === 2 ? "" : "none";
+    page3.style.display = n === 3 ? "" : "none";
+    stepCircles.forEach(function (c, idx) {
+      var num = idx + 1;
+      c.style.background = num < n ? "#10a34a" : num === n ? "#3b82f6" : "#cbd5e1";
+    });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
 
   var rows = []; // { rowEl, nameInput, sourceInput, qtyInput, missingInput, purchaseInput, sellInput, badgeEl, landedEl, itemId, pickerList }
 
-  /* ---- Step 1 ---- */
-  container.appendChild(el("div", { class: "eyebrow mb2" }, "ደረጃ 1 — ትራንስፖርት መረጃ"));
-  var plateInput = el("input", { class: "input", placeholder: "ታርጋ (Plate)" });
-  var carrierInput = el("input", { class: "input", placeholder: "የአራጋፊ/አጓጓዥ ስም" });
-  var transportInput = numberInput("የትራንስፖርት ወጪ", true);
-  var unloadInput = numberInput("የአውራጅ ወጪ", true);
+  /* ---- Page 1: ጭነት መረጃ ---- */
+  page1.appendChild(el("div", { class: "helpmsg section" }, "የመኪናውን፣ የአራጋፊውን እና የትራንስፖርት/ጫኝ ወጪውን ይሙሉ — ጠቅላላ ወጪው ራሱ ይደመራል።"));
+  var plateInput = el("input", { class: "input", placeholder: "የመኪናው ታርጋ" });
+  var carrierInput = el("input", { class: "input", placeholder: "የአሽከርካሪ/የአራጋፊ ስም" });
+  var transportInput = numberInput("የትራንስፖርት ወጪ (ብር)", true);
+  var unloadInput = numberInput("የጫኝ ወጪ (ብር)", true);
+  var countInput = numberInput("የመጡ የተለዩ እቃዎች ዓይነት ብዛት (ለምሳሌ 3)", false);
   var totalCostDisplay = el("div", { class: "card-value" }, "0.00 ብር");
   var step1Card = el("div", { class: "card section" }, [
     plateInput, el("div", { class: "mt2" }, [carrierInput]),
     el("div", { class: "grid2 mt2" }, [transportInput, unloadInput]),
-    el("div", { class: "mt3" }, [el("div", { class: "card-label" }, "አጠቃላይ ወጪ (በራስ-ሰር)"), totalCostDisplay])
+    el("div", { class: "mt2" }, [countInput]),
+    el("div", { class: "mt3" }, [el("div", { class: "card-label" }, "አጠቃላይ የጭነት ወጪ (በራስ-ሰር)"), totalCostDisplay])
   ]);
-  container.appendChild(step1Card);
+  page1.appendChild(step1Card);
+  var err1Box = el("div", { class: "errmsg" });
+  var next1Btn = el("button", { class: "btn btn-primary section", style: { width: "100%" } }, "ቀጣይ →");
+  page1.appendChild(err1Box);
+  page1.appendChild(next1Btn);
 
-  /* ---- Step 2 ---- */
-  container.appendChild(el("div", { class: "eyebrow mb2 mt3" }, "ደረጃ 2 — የዕቃ ዓይነት ብዛት"));
-  var countInput = numberInput("ለምሳሌ 3", false);
-  var genBtn = el("button", { class: "btn btn-outline" }, "🧾 ረድፎችን አዘጋጅ");
-  container.appendChild(el("div", { class: "card section" }, [countInput, el("div", { class: "mt2" }, [genBtn])]));
-
-  var rowsWrap = el("div", { class: "section" });
-  container.appendChild(rowsWrap);
-
-  /* ---- Step 3 summary (math engine) ---- */
-  container.appendChild(el("div", { class: "eyebrow mb2" }, "ደረጃ 3 — ማጠቃለያ (Math Engine)"));
+  /* ---- Page 2: የዕቃ ዝርዝር ---- */
+  page2.appendChild(el("div", { class: "helpmsg section" }, "ለእያንዳንዱ ዕቃ ስም፣ ከማን፣ ብዛት እና ዋጋ ይሙሉ — የቆመበት ዋጋ (ትራንስፖርት ወጪውን ጨምሮ) በራሱ ይሰላል።"));
+  var rowsWrap = el("div", {});
+  page2.appendChild(rowsWrap);
   var mathCard = el("div", { class: "card-compact section", style: { borderColor: "#8b5cf6" } });
-  container.appendChild(mathCard);
+  page2.appendChild(mathCard);
+  var err2Box = el("div", { class: "errmsg" });
+  var back2Btn = el("button", { class: "btn btn-outline" }, "← ተመለስ");
+  var next2Btn = el("button", { class: "btn btn-primary" }, "ቀጣይ →");
+  page2.appendChild(err2Box);
+  page2.appendChild(el("div", { class: "grid2 section" }, [back2Btn, next2Btn]));
 
-  /* ---- Step 4: date/time + save/print/share ---- */
+  /* ---- Page 3: ማጠቃለያ ---- */
   var now = new Date();
   var eth = gregorianToEthiopian(now);
-  container.appendChild(el("div", { class: "eyebrow mb2" }, "ደረጃ 4 — ቀን/ሰዓት እና ማጠናቀቅ"));
   var dateCard = el("div", { class: "card-compact section" }, [
     el("div", { class: "card-label" }, "ቀን እና ሰዓት"),
     el("div", { class: "card-value", style: { fontSize: "13px" } },
       todayISO() + " " + String(now.getHours()).padStart(2, "0") + ":" + String(now.getMinutes()).padStart(2, "0") +
       "  ·  " + ethLabel(eth.year, eth.month) + " " + eth.day + " ቀን")
   ]);
-  container.appendChild(dateCard);
+  page3.appendChild(dateCard);
+  var summaryWrap = el("div", { class: "section" });
+  page3.appendChild(summaryWrap);
 
   var errBox = el("div", { class: "errmsg" });
   var saveBtn = el("button", { class: "btn btn-emerald" }, "💾 አስቀምጥ (ወደ ስቶክ ይጨመራል)");
   var printBtn = el("button", { class: "btn btn-outline" }, "🖨️ አትም/PDF");
   var shareBtn = el("button", { class: "btn btn-outline" }, "📤 አጋራ");
-  container.appendChild(el("div", { class: "flex-col gap2 section" }, [saveBtn, el("div", { class: "grid2" }, [printBtn, shareBtn]), errBox]));
+  var back3Btn = el("button", { class: "btn btn-outline" }, "← ተመለስ");
+  page3.appendChild(el("div", { class: "flex-col gap2 section" }, [saveBtn, el("div", { class: "grid2" }, [printBtn, shareBtn]), back3Btn, errBox]));
 
-  container.appendChild(el("div", { class: "eyebrow mb2 mt3" }, "🗂️ ያለፉ ግዢዎች"));
+  page3.appendChild(el("div", { class: "eyebrow mb2 mt3" }, "🗂️ ያለፉ ግዢዎች"));
   var histWrap = el("div", {});
-  container.appendChild(histWrap);
+  page3.appendChild(histWrap);
+
+  function generateRows(n) {
+    clear(rowsWrap); rows = [];
+    for (var i = 0; i < n; i++) { var r = makeRow(i); rows.push(r); rowsWrap.appendChild(r.rowEl); }
+    recompute();
+  }
+
+  next1Btn.addEventListener("click", guarded(function () {
+    var n = Math.max(1, Math.min(50, numVal(countInput.value) || 0));
+    if (!n) { err1Box.textContent = "የእቃ ዓይነት ብዛት ያስገቡ"; return; }
+    err1Box.textContent = "";
+    if (rows.length !== n) generateRows(n);
+    showStep(2);
+  }));
+  back2Btn.addEventListener("click", function () { showStep(1); });
+  next2Btn.addEventListener("click", guarded(function () {
+    var draft = collectDraft();
+    var problem = validate(draft);
+    if (problem) { err2Box.textContent = problem; return; }
+    err2Box.textContent = "";
+    buildSummary(draft);
+    showStep(3);
+  }));
+  back3Btn.addEventListener("click", function () { showStep(2); });
+
+  function buildSummary(draft) {
+    clear(summaryWrap);
+    summaryWrap.appendChild(el("div", { class: "eyebrow mb2" }, "📋 የግዢ ማጠቃለያ"));
+    summaryWrap.appendChild(el("div", { class: "card-compact mb2" }, [
+      el("div", { class: "card-label" }, (draft.plate || "ታርጋ ያልገባ") + " · " + (draft.carrierName || "-")),
+      el("div", { class: "card-value", style: { fontSize: "13px" } }, "አጠቃላይ ወጪ " + fmt(draft.totalCostCents) + " · ጠቅላላ ብዛት " + draft.totalQty)
+    ]));
+    var listScroll = el("div", { class: "list-scroll" });
+    draft.lines.forEach(function (l) {
+      var marginCents = l.sellUnitCents - l.finalUnitCostCents;
+      var marginPct = l.sellUnitCents > 0 ? Math.round((marginCents / l.sellUnitCents) * 100) : 0;
+      listScroll.appendChild(el("div", { class: "item-row" }, [
+        el("div", { class: "item-name" }, l.name + (l.source ? " (ከ" + l.source + ")" : "") + (l.isNewItem ? " ➕" : " 🔗")),
+        el("div", { class: "item-sub" }, "ብዛት: " + l.survivors + (l.missing ? " (" + l.missing + " ጠፍቷል)" : "") + " · የግዢ ዋጋ: " + fmt(l.purchaseUnitCostCents) + " + ወጪ ድርሻ: " + fmt(l.overheadPerUnitCents)),
+        el("div", { class: "item-sub", style: { fontWeight: "700" } }, "የቆመበት ዋጋ: " + fmt(l.finalUnitCostCents) + " · የሽያጭ ዋጋ: " + fmt(l.sellUnitCents) + " · ትርፍ ህዳግ: " + fmt(marginCents) + " (" + marginPct + "%)")
+      ]));
+    });
+    summaryWrap.appendChild(listScroll);
+  }
 
   /* ---------- row builder ---------- */
   function makeRow(idx) {
@@ -1778,14 +1870,6 @@ function renderPurchase(container) {
     ]);
     return r;
   }
-
-  genBtn.addEventListener("click", function () {
-    var n = Math.max(1, Math.min(50, Number(countInput.value) || 0));
-    if (!n) { return; }
-    clear(rowsWrap); rows = [];
-    for (var i = 0; i < n; i++) { var r = makeRow(i); rows.push(r); rowsWrap.appendChild(r.rowEl); }
-    recompute();
-  });
 
   /* ---------- live math engine ---------- */
   function totalCostCentsNow() { return toCents(transportInput.value || 0) + toCents(unloadInput.value || 0); }
@@ -1900,6 +1984,7 @@ function renderPurchase(container) {
       histWrap.appendChild(row);
     });
   }
+  showStep(1);
 }
 var lastSavedPurchase = null;
 
@@ -1918,7 +2003,10 @@ function buildPurchaseReceiptHtml(p) {
     rHighlight("ጠቅላላ ብዛት", String(p.totalQty), "green") +
     '<h2>የዕቃ ዝርዝር</h2>' +
     rTable(["ስም", "ከማን", "ብዛት", "የጠፋ", "የግዢ ዋጋ", "የወጪ ድርሻ", "የቆመበት ዋጋ", "ጠቅላላ"], rows, { boldCol: [6] });
-  return '<!DOCTYPE html><html lang="am" dir="ltr"><head><meta charset="UTF-8"><title>የግዢ ደረሰኝ ' + escapeHtml(p.date) + '</title><style>' +
+  return '<!DOCTYPE html><html lang="am" dir="ltr"><head><meta charset="UTF-8"><title>የግዢ ደረሰኝ ' + escapeHtml(p.date) + '</title>' +
+    '<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>' +
+    '<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Ethiopic:wght@400;700&display=swap" rel="stylesheet">' +
+    '<style>' +
     '@page{ size:A4; margin:14mm; } *{box-sizing:border-box;} body{font-family:"Noto Sans Ethiopic",-apple-system,"Segoe UI",Roboto,Arial,sans-serif;color:#1e293b;margin:0;font-size:12px;line-height:1.5;}' +
     '.rbackbar{position:sticky;top:0;z-index:10;background:#122B4A;padding:10px 14px;display:flex;align-items:center;gap:10px;}' +
     '.rbackbar button{background:#fff;color:#122B4A;border:none;border-radius:8px;padding:9px 16px;font-weight:800;font-size:13px;cursor:pointer;font-family:inherit;}' +
@@ -2840,7 +2928,10 @@ function buildReportHtml(data) {
     '<div class="rfootnote">ይህ ሪፖርት በ' + todayISO() + ' ' + escapeHtml(ethLabel(todayEth.year, todayEth.month)) + ' ' + todayEth.year + ' ዓ.ም ላይ በራስ-ሰር ከንግድ ስራው መዝገብ የተዘጋጀ ነው።</div>');
 
   return '<!DOCTYPE html><html lang="am" dir="ltr"><head><meta charset="UTF-8">' +
-    '<title>' + escapeHtml(profile.shopName || "የሱቅ ሪፖርት") + ' — ባለ 9 ገጽ ሪፖርት</title><style>' +
+    '<title>' + escapeHtml(profile.shopName || "የሱቅ ሪፖርት") + ' — ባለ 9 ገጽ ሪፖርት</title>' +
+    '<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>' +
+    '<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Ethiopic:wght@400;700&display=swap" rel="stylesheet">' +
+    '<style>' +
     '@page{ size:A4; margin:14mm; }' +
     '*{box-sizing:border-box;} body{font-family:"Noto Sans Ethiopic",-apple-system,"Segoe UI",Roboto,Arial,sans-serif;color:#1e293b;margin:0;font-size:12px;line-height:1.5;}' +
     '.rbackbar{position:sticky;top:0;z-index:10;background:#122B4A;padding:10px 14px;display:flex;align-items:center;gap:10px;}' +
@@ -3317,7 +3408,7 @@ function initFirebaseIfConfigured(onDone) {
             var remote = docSnap.data();
             if (remote && Array.isArray(remote.items)) {
               firebaseApplyingRemote = true;
-              state.data = remote;
+              state.data = normalizeData(remote);
               saveLocal(state.data);
               firebaseApplyingRemote = false;
             }
